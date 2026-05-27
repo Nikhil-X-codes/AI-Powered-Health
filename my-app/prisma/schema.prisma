@@ -1,0 +1,78 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model users {
+  id            String          @id @default(uuid()) @db.Uuid
+  name          String          @db.VarChar(100)
+  email         String          @unique @db.VarChar(255)
+  password      String          @db.VarChar(255)
+  created_at    DateTime        @default(now())
+  
+  reports       reports[]
+  prescriptions prescriptions[]
+  chat_history  chat_history[]
+}
+
+model reports {
+  id            String           @id @default(uuid()) @db.Uuid
+  user_id       String           @db.Uuid
+  file_url      String
+  report_name   String?          @db.VarChar(255)
+  summary       String?          @db.Text
+  created_at    DateTime         @default(now())
+  
+  user          users            @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  health_metrics health_metrics[]
+}
+
+model health_metrics {
+  id            String    @id @default(uuid()) @db.Uuid
+  report_id     String    @db.Uuid
+  metric_name   String?   @db.VarChar(255)
+  metric_value  String?   @db.VarChar(100)
+  status        String?   @db.VarChar(50)
+  explanation   String?   @db.Text
+  created_at    DateTime  @default(now())
+  
+  report        reports   @relation(fields: [report_id], references: [id], onDelete: Cascade)
+}
+
+model prescriptions {
+  id              String      @id @default(uuid()) @db.Uuid
+  user_id         String      @db.Uuid
+  file_url        String
+  extracted_text  String?     @db.Text
+  created_at      DateTime    @default(now())
+  
+  user            users       @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  medicines       medicines[]
+}
+
+model medicines {
+  id              String           @id @default(uuid()) @db.Uuid
+  prescription_id String           @db.Uuid
+  medicine_name   String?          @db.VarChar(255)
+  usage_info      String?          @db.Text
+  dosage_info     String?          @db.Text
+  side_effects    String?          @db.Text
+  
+  prescription    prescriptions    @relation(fields: [prescription_id], references: [id], onDelete: Cascade)
+  
+  @@unique([prescription_id, medicine_name])
+}
+
+model chat_history {
+  id            String    @id @default(uuid()) @db.Uuid
+  user_id       String    @db.Uuid
+  user_message  String?   @db.Text
+  ai_response   String?   @db.Text
+  created_at    DateTime  @default(now())
+  
+  user          users     @relation(fields: [user_id], references: [id], onDelete: Cascade)
+}
