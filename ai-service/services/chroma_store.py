@@ -34,7 +34,7 @@ def init_chroma() -> chromadb.Collection:
         }
     )
     
-    print(f"✓ ChromaDB initialized at: {CHROMA_DATA_DIR}")
+    print(f"[OK] ChromaDB initialized at: {CHROMA_DATA_DIR}")
     print(f"  Collection: {CHROMA_COLLECTION_NAME} (metric: {CHROMA_DISTANCE_METRIC})")
     
     return _collection
@@ -47,7 +47,12 @@ def get_collection() -> chromadb.Collection:
     return _collection
 
 
-def add_documents(documents: list, metadatas: list = None, ids: list = None):
+def add_documents(
+    documents: list,
+    metadatas: list = None,
+    ids: list = None,
+    embeddings: list = None
+):
     """
     Add documents to the collection.
     
@@ -60,11 +65,12 @@ def add_documents(documents: list, metadatas: list = None, ids: list = None):
     collection.add(
         documents=documents,
         metadatas=metadatas or [{} for _ in documents],
-        ids=ids or [f"doc_{i}" for i in range(len(documents))]
+        ids=ids or [f"doc_{i}" for i in range(len(documents))],
+        embeddings=embeddings,
     )
 
 
-def search(query_embeddings: list, n_results: int = 5) -> dict:
+def search(query_embeddings: list, n_results: int = 5, where: dict = None) -> dict:
     """
     Search the collection by embedding vectors.
     
@@ -78,7 +84,8 @@ def search(query_embeddings: list, n_results: int = 5) -> dict:
     collection = get_collection()
     return collection.query(
         query_embeddings=query_embeddings,
-        n_results=n_results
+        n_results=n_results,
+        where=where,
     )
 
 

@@ -52,11 +52,28 @@ export async function POST(request) {
 
     return response;
   } catch (error) {
+    console.error('[Register] ERROR:', error.code || 'N/A', error.message);
+
     // Check if it's a unique constraint error (user already exists)
     if (error.message.includes('already exists')) {
       return NextResponse.json(
         { error: 'Email already registered' },
         { status: 409 }
+      );
+    }
+
+    // Connection / database errors should return 503
+    const isConnectionError =
+      error.message?.includes('connection') ||
+      error.message?.includes('timeout') ||
+      error.message?.includes('fetch failed') ||
+      error.code === 'P1001' ||
+      error.code === 'P1002';
+
+    if (isConnectionError) {
+      return NextResponse.json(
+        { error: 'Service temporarily unavailable. Please try again.' },
+        { status: 503 }
       );
     }
 

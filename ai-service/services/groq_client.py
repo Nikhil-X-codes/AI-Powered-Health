@@ -18,7 +18,7 @@ def init_groq_client() -> ChatGroq:
             model_name=GROQ_MODEL,
             temperature=0.7,
         )
-        print(f"✓ Groq client initialized with model: {GROQ_MODEL}")
+        print(f"[OK] Groq client initialized with model: {GROQ_MODEL}")
     return _groq_client
 
 

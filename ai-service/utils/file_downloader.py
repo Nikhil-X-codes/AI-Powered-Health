@@ -18,7 +18,7 @@ try:
     PDF_SUPPORT = True
 except ImportError:
     PDF_SUPPORT = False
-    print("⚠️  pdf2image not installed. PDF support disabled.")
+    print("[WARN] pdf2image not installed. PDF support disabled.")
     print("   Install with: pip install pdf2image python-pptx")
 
 
@@ -165,7 +165,7 @@ def download_and_convert(url: str, convert_pdf: bool = True) -> Tuple[str, str]:
             file_bytes, extension = convert_pdf_to_image(file_bytes)
         except ImportError as e:
             # Fallback: save as-is if conversion not available
-            print(f"⚠️  {e}")
+            print(f"[WARN] {e}")
             print("    Saving PDF as-is (OCR may fail)")
     
     # Save to temp file
@@ -220,7 +220,7 @@ def cleanup_temp_file(file_path: str) -> bool:
             return True
         return False
     except Exception as e:
-        print(f"⚠️  Failed to cleanup {file_path}: {e}")
+        print(f"[WARN] Failed to cleanup {file_path}: {e}")
         return False
 
 

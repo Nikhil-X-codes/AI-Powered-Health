@@ -36,9 +36,20 @@ export async function POST(request) {
 
     return response;
   } catch (error) {
+    console.error('[Login] ERROR:', error.code || 'N/A', error.message);
+
+    // Distinguish between auth errors and server/connection errors
+    if (error.message === 'Invalid credentials') {
+      return NextResponse.json(
+        { error: 'Invalid credentials' },
+        { status: 401 }
+      );
+    }
+
+    // Connection / database errors should return 503 (Service Unavailable)
     return NextResponse.json(
-      { error: error.message },
-      { status: 401 }
+      { error: 'Service temporarily unavailable. Please try again.' },
+      { status: 503 }
     );
   }
 }

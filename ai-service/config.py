@@ -17,12 +17,18 @@ EMBEDDER_MODEL = os.getenv("EMBEDDER_MODEL", "BAAI/bge-small-en")
 
 # ChromaDB Configuration
 CHROMA_DATA_DIR = os.getenv("CHROMA_DATA_DIR", "./chroma_data")
-CHROMA_COLLECTION_NAME = os.getenv("CHROMA_COLLECTION_NAME", "medical_knowledge")
+CHROMA_COLLECTION_NAME = os.getenv(
+    "CHROMA_COLLECTION_NAME",
+    os.getenv("CHROMA_COLLECTION", "medical_knowledge")
+)
 CHROMA_DISTANCE_METRIC = os.getenv("CHROMA_DISTANCE_METRIC", "cosine")
 
 # Whisper Configuration
 WHISPER_MODEL = os.getenv("WHISPER_MODEL", "base")
 WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
+
+# TTS Configuration
+TTS_VOICE = os.getenv("TTS_VOICE", "en-US-AriaNeural")
 
 # OCR Configuration
 OCR_LANGUAGE = os.getenv("OCR_LANGUAGE", "en")

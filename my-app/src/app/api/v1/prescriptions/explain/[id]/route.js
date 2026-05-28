@@ -2,7 +2,22 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/api-auth';
 
-const FASTAPI_BASE_URL = process.env.FASTAPI_URL || 'http://localhost:8000';
+const FASTAPI_BASE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 45_000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 export async function POST(request, { params }) {
   try {
@@ -39,16 +54,17 @@ export async function POST(request, { params }) {
     console.log(`Explaining prescription ${prescriptionId} from ${prescription.file_url}`);
 
     // Step 1: Call FastAPI to extract text from Cloudinary URL
-    const ocrResponse = await fetch(`${FASTAPI_BASE_URL}/ocr/from-url`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const ocrResponse = await fetchWithTimeout(
+      `${FASTAPI_BASE_URL}/ocr/from-url`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file_url: prescription.file_url,
+          description: 'Prescription image',
+        }),
       },
-      body: JSON.stringify({
-        file_url: prescription.file_url,
-        description: 'Prescription image',
-      }),
-    });
+    );
 
     if (!ocrResponse.ok) {
       const errorText = await ocrResponse.text();
@@ -65,18 +81,16 @@ export async function POST(request, { params }) {
     console.log(`Extracted ${extractedText.length} characters from prescription`);
 
     // Step 2: Call FastAPI to explain prescription medicines
-    const explanationResponse = await fetch(
+    const explanationResponse = await fetchWithTimeout(
       `${FASTAPI_BASE_URL}/prescriptions/explain`,
       {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           ocr_text: extractedText,
           prescription_id: prescriptionId,
         }),
-      }
+      },
     );
 
     if (!explanationResponse.ok) {
@@ -137,6 +151,34 @@ export async function POST(request, { params }) {
         },
       },
     });
+
+    try {
+      const medicinesText = updatedPrescription.medicines
+        .map(
+          (med) =>
+            `${med.medicine_name || 'Medicine'}: ${med.dosage_info || ''}. ${med.usage_info || ''}. ${med.side_effects || ''}`
+        )
+        .join('\n');
+
+      const textToEmbed = `Prescription medicines:\n${medicinesText}\n\nOCR Text:\n${extractedText}`;
+
+      await fetchWithTimeout(
+        `${FASTAPI_BASE_URL}/embed`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            texts: [textToEmbed],
+            source: 'prescription',
+            user_id: userId,
+            prescription_id: prescriptionId,
+          }),
+        },
+        60_000
+      );
+    } catch (embedError) {
+      console.warn('RAG embed failed for prescription:', embedError.message);
+    }
 
     return NextResponse.json(
       {

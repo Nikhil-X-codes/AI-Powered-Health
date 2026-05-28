@@ -29,7 +29,7 @@ async def extract_from_image(file: UploadFile = File(...)):
             "filename": "image.png"
         }
     """
-    if not file.content_type.startswith("image/"):
+    if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
     
     # Save uploaded file temporarily
@@ -44,6 +44,10 @@ async def extract_from_image(file: UploadFile = File(...)):
             "text": text,
             "filename": file.filename
         }
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=f"OCR service unavailable: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OCR extraction failed: {str(e)}")
     finally:
         os.unlink(tmp_path)
 
@@ -53,7 +57,7 @@ async def extract_detailed(file: UploadFile = File(...)):
     """
     Extract text with confidence scores and bounding boxes.
     """
-    if not file.content_type.startswith("image/"):
+    if not file.content_type or not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
     
     with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(file.filename)[1]) as tmp:
@@ -68,6 +72,10 @@ async def extract_detailed(file: UploadFile = File(...)):
             "filename": file.filename,
             "total_items": len(items)
         }
+    except RuntimeError as e:
+        raise HTTPException(status_code=503, detail=f"OCR service unavailable: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"OCR extraction failed: {str(e)}")
     finally:
         os.unlink(tmp_path)
 

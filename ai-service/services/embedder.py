@@ -15,7 +15,7 @@ def init_embedder() -> SentenceTransformer:
     global _embedder_model
     if _embedder_model is None:
         _embedder_model = SentenceTransformer(EMBEDDER_MODEL)
-        print(f"✓ Embedder model initialized: {EMBEDDER_MODEL}")
+        print(f"[OK] Embedder model initialized: {EMBEDDER_MODEL}")
     return _embedder_model
 
 

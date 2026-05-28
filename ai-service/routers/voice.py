@@ -3,11 +3,13 @@ Voice/Speech Router
 Endpoints for voice input and speech-to-text.
 """
 
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Form
 import tempfile
 import os
-from services import transcribe, get_groq_client
+from services import transcribe, get_groq_client, embed_text, search, synthesize_speech
 from langchain_core.messages import HumanMessage
+from utils import RAG_MEDICAL_QA_PROMPT
+from config import TTS_VOICE
 
 router = APIRouter(prefix="/voice", tags=["Voice"])
 
@@ -85,6 +87,81 @@ Keep the response concise and clear."""
             "filename": audio_file.filename,
             "transcription": text,
             "analysis": analysis.content
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        os.unlink(tmp_path)
+
+
+@router.post("")
+async def voice_rag_chat(
+    audio_file: UploadFile = File(...),
+    user_id: str = Form(...),
+    report_id: str = Form(None)
+):
+    """
+    Transcribe audio, run RAG chat, and return TTS audio.
+    """
+    if not audio_file.content_type.startswith("audio/"):
+        raise HTTPException(status_code=400, detail="File must be audio")
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(audio_file.filename)[1]) as tmp:
+        content = await audio_file.read()
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    try:
+        transcription = transcribe(tmp_path)
+
+        query_embedding = embed_text(transcription)
+        where_filter = {"user_id": user_id}
+        if report_id:
+            where_filter = {"$and": [{"user_id": user_id}, {"report_id": report_id}]}
+
+        results = search(
+            query_embeddings=[query_embedding],
+            n_results=4,
+            where=where_filter,
+        )
+
+        documents = results.get("documents", [[]])[0] or []
+        metadatas = results.get("metadatas", [[]])[0] or []
+
+        context_lines = []
+        for doc, meta in zip(documents, metadatas):
+            if not doc:
+                continue
+            source_type = meta.get("source") or meta.get("source_type") or "knowledge"
+            source_id = meta.get("report_id") or meta.get("prescription_id") or meta.get("source_id")
+            source_label = f"{source_type}" + (f" #{source_id}" if source_id else "")
+            context_lines.append(f"- {source_label}: {doc}")
+
+        knowledge_context = "\n".join(context_lines) if context_lines else "No relevant context found."
+
+        prompt = RAG_MEDICAL_QA_PROMPT.format(
+            knowledge_context=knowledge_context,
+            question=transcription,
+        )
+
+        client = get_groq_client()
+        response = client.invoke([HumanMessage(content=prompt)])
+
+        audio_bytes = await synthesize_speech(response.content, TTS_VOICE)
+
+        return {
+            "transcription": transcription,
+            "answer": response.content,
+            "audio": audio_bytes.decode("latin1"),
+            "audio_mime": "audio/mpeg",
+            "model": client.model_name,
+            "sources": [
+                {
+                    "text": doc,
+                    "metadata": meta,
+                }
+                for doc, meta in zip(documents, metadatas)
+            ],
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

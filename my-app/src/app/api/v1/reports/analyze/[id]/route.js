@@ -2,7 +2,22 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/api-auth';
 
-const FASTAPI_BASE_URL = process.env.FASTAPI_URL || 'http://localhost:8000';
+const FASTAPI_BASE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+
+async function fetchWithTimeout(url, options = {}, timeoutMs = 45_000) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
 
 export async function POST(request, { params }) {
   try {
@@ -39,16 +54,17 @@ export async function POST(request, { params }) {
     console.log(`Analyzing report ${reportId} from ${report.file_url}`);
 
     // Step 1: Call FastAPI to extract text from Cloudinary URL
-    const ocrResponse = await fetch(`${FASTAPI_BASE_URL}/ocr/from-url`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const ocrResponse = await fetchWithTimeout(
+      `${FASTAPI_BASE_URL}/ocr/from-url`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          file_url: report.file_url,
+          description: report.report_name,
+        }),
       },
-      body: JSON.stringify({
-        file_url: report.file_url,
-        description: report.report_name,
-      }),
-    });
+    );
 
     if (!ocrResponse.ok) {
       const errorText = await ocrResponse.text();
@@ -65,16 +81,17 @@ export async function POST(request, { params }) {
     console.log(`Extracted ${extractedText.length} characters from report`);
 
     // Step 2: Call FastAPI to analyze metrics from OCR text
-    const analysisResponse = await fetch(`${FASTAPI_BASE_URL}/analyze/report`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
+    const analysisResponse = await fetchWithTimeout(
+      `${FASTAPI_BASE_URL}/analyze/report`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          ocr_text: extractedText,
+          report_id: reportId,
+        }),
       },
-      body: JSON.stringify({
-        ocr_text: extractedText,
-        report_id: reportId,
-      }),
-    });
+    );
 
     if (!analysisResponse.ok) {
       const errorText = await analysisResponse.text();
@@ -126,6 +143,34 @@ export async function POST(request, { params }) {
         },
       },
     });
+
+    try {
+      const metricsText = updatedReport.health_metrics
+        .map(
+          (metric) =>
+            `${metric.metric_name}: ${metric.metric_value} (${metric.status}). ${metric.explanation}`
+        )
+        .join('\n');
+
+      const textToEmbed = `Report: ${report.report_name || 'Medical Report'}\nSummary: ${updatedReport.summary}\nMetrics:\n${metricsText}`;
+
+      await fetchWithTimeout(
+        `${FASTAPI_BASE_URL}/embed`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            texts: [textToEmbed],
+            source: 'report',
+            user_id: userId,
+            report_id: reportId,
+          }),
+        },
+        60_000
+      );
+    } catch (embedError) {
+      console.warn('RAG embed failed for report:', embedError.message);
+    }
 
     return NextResponse.json(
       {

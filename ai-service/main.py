@@ -32,58 +32,58 @@ async def lifespan(app: FastAPI):
     """
     
     print("\n" + "="*70)
-    print("🚀 Starting AI Service...")
+    print(">> Starting AI Service...")
     print("="*70)
     
     # Load all singletons at startup
     try:
-        print("\n📦 Initializing services...\n")
+        print("\n[INIT] Initializing services...\n")
         
         # Initialize each service
         try:
             init_groq_client()
         except Exception as e:
-            print(f"⚠️  Groq client initialization failed: {e}")
+            print(f"[WARN] Groq client initialization failed: {e}")
             traceback.print_exc()
         
         try:
             init_embedder()
         except Exception as e:
-            print(f"⚠️  Embedder initialization failed: {e}")
+            print(f"[WARN] Embedder initialization failed: {e}")
             traceback.print_exc()
         
         try:
             init_chroma()
         except Exception as e:
-            print(f"⚠️  ChromaDB initialization failed: {e}")
+            print(f"[WARN] ChromaDB initialization failed: {e}")
             traceback.print_exc()
         
         try:
             init_whisper()
         except Exception as e:
-            print(f"⚠️  Whisper initialization failed: {e}")
+            print(f"[WARN] Whisper initialization failed: {e}")
             traceback.print_exc()
         
         try:
             init_ocr()
         except Exception as e:
-            print(f"⚠️  OCR initialization failed: {e}")
+            print(f"[WARN] OCR initialization failed: {e}")
             traceback.print_exc()
         
         print("\n" + "="*70)
-        print("✅ All services initialized successfully!")
-        print(f"🌐 API Server: http://{config.API_HOST}:{config.API_PORT}")
+        print("[OK] All services initialized successfully!")
+        print(f"[SERVER] API Server: http://{config.API_HOST}:{config.API_PORT}")
         print("="*70 + "\n")
         
     except Exception as e:
-        print(f"\n❌ Failed to initialize services: {e}")
+        print(f"\n[ERROR] Failed to initialize services: {e}")
         traceback.print_exc()
         sys.exit(1)
     
     yield  # Server runs here
     
     # Shutdown cleanup (if needed)
-    print("\n🛑 Shutting down AI Service...")
+    print("\n[SHUTDOWN] Shutting down AI Service...")
     # Add any cleanup code here (close connections, save state, etc.)
 
 
@@ -143,37 +143,37 @@ async def health_check_detailed():
     try:
         from services import get_groq_client
         get_groq_client()
-        status["services"]["groq"] = "✓"
+        status["services"]["groq"] = "ok"
     except:
-        status["services"]["groq"] = "✗"
+        status["services"]["groq"] = "error"
     
     try:
         from services import get_embedder
         get_embedder()
-        status["services"]["embedder"] = "✓"
+        status["services"]["embedder"] = "ok"
     except:
-        status["services"]["embedder"] = "✗"
+        status["services"]["embedder"] = "error"
     
     try:
         from services import get_collection
         get_collection()
-        status["services"]["chromadb"] = "✓"
+        status["services"]["chromadb"] = "ok"
     except:
-        status["services"]["chromadb"] = "✗"
+        status["services"]["chromadb"] = "error"
     
     try:
         from services import get_whisper_model
         get_whisper_model()
-        status["services"]["whisper"] = "✓"
+        status["services"]["whisper"] = "ok"
     except:
-        status["services"]["whisper"] = "✗"
+        status["services"]["whisper"] = "error"
     
     try:
         from services import get_ocr_engine
         get_ocr_engine()
-        status["services"]["ocr"] = "✓"
+        status["services"]["ocr"] = "ok"
     except:
-        status["services"]["ocr"] = "✗"
+        status["services"]["ocr"] = "error"
     
     return status
 
@@ -182,7 +182,7 @@ async def health_check_detailed():
 # MOUNT ROUTERS
 # ============================================================================
 
-print("📡 Mounting routers...")
+print("[MOUNT] Mounting routers...")
 
 app.include_router(ocr.router)
 app.include_router(chat.router)
@@ -191,12 +191,12 @@ app.include_router(prescription.router)
 app.include_router(voice.router)
 app.include_router(analyze.router)
 
-print("   ✓ /ocr")
-print("   ✓ /chat")
-print("   ✓ /embed")
-print("   ✓ /prescriptions")
-print("   ✓ /voice")
-print("   ✓ /analyze")
+print("   [OK] /ocr")
+print("   [OK] /chat")
+print("   [OK] /embed")
+print("   [OK] /prescriptions")
+print("   [OK] /voice")
+print("   [OK] /analyze")
 
 
 # ============================================================================

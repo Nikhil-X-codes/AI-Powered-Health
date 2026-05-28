@@ -1,355 +1,309 @@
+# MedExplain AI
 
-doc_content = """# MedExplain AI — Full Testing Guide (Postman)
+> AI-powered healthcare assistance platform that simplifies complex medical language into understandable explanations.
 
-## What Is Built So Far
+## Project Overview
 
-| Phase | Feature | Status |
-|-------|---------|--------|
-| Phase 1 | Authentication (JWT register/login/protected routes) | ✅ |
-| Phase 2 | File upload (Cloudinary + PostgreSQL) | ✅ |
-| Phase 3 | AI Microservice skeleton (FastAPI + singletons) | ✅ |
-| Phase 4 | Report Analysis (OCR + Groq + health_metrics) | ✅ |
-| Phase 5 | Prescription Explainer (OCR + Groq + medicines) | ✅ |
+MedExplain AI helps patients, elderly users, and non-medical individuals understand their medical reports and prescriptions without relying on unreliable internet sources. The platform uses advanced OCR, Large Language Models (LLM), and Retrieval-Augmented Generation (RAG) to provide accurate, personalized medical insights.
 
-## Step 3: AI Service Direct Tests (Phase 3)
+### Core Capabilities
 
-### 3.1 FastAPI Health Check
+- **Medical Report Analyzer** — Upload PDF or image-based medical reports; the system extracts text via OCR, analyzes values, and generates simple explanations with structured health metrics.
+- **Prescription Explainer** — Upload prescription images to detect medicine names, understand purpose, dosage, and side effects.
+- **Health Dashboard** — Visualize health metrics over time, track trends, and flag high/low values.
+- **AI Chat Assistant** — Ask medical questions grounded in your uploaded reports and medical knowledge via RAG.
+- **Voice Assistant** — Speech-to-text input and text-to-speech responses for accessibility.
 
-| Field | Value |
-|-------|-------|
-| **Method** | GET |
-| **URL** | `http://localhost:8000/health` |
-| **Headers** | None |
+### Target Users
 
-**Expected Response (200):**
-```json
-{
-  "status": "ok",
-  "service": "medexplain-ai"
-}
+- **Primary:** Patients, elderly users, non-medical individuals, students
+- **Secondary:** Clinics, small hospitals, medical assistants
+
+---
+
+## Tech Stack
+
+### Frontend
+| Technology | Purpose |
+|------------|---------|
+| **Next.js** | React framework (App Router / Pages Router) |
+| **TypeScript** | Type-safe development |
+| **Tailwind CSS** | Utility-first styling |
+| **ShadCN UI** | Accessible, composable UI components |
+| **Axios** | HTTP client for API communication |
+| **React Query** | Server-state management |
+| **Recharts** | Health analytics & trend visualizations |
+
+**Deployment:** Vercel
+
+### Backend API
+| Technology | Purpose |
+|------------|---------|
+| **Node.js** | Runtime environment |
+| **Express.js** | REST API framework |
+| **PostgreSQL (Neon)** | Relational database |
+| **Prisma ORM** | Database schema management & querying |
+| **JWT (jsonwebtoken)** | Stateless authentication |
+| **bcryptjs** | Password hashing (salt rounds: 10) |
+| **Multer** | Multipart file upload handling |
+| **Cloudinary SDK** | Cloud file storage & CDN |
+
+**Deployment:** Render
+
+### AI Microservice
+| Technology | Purpose |
+|------------|---------|
+| **FastAPI** | High-performance Python API for AI workloads |
+| **LangChain** | LLM orchestration & prompt management |
+| **PaddleOCR** | Text extraction from PDFs and images |
+| **Groq API** | LLM inference (model: `llama-3.1-8b-instant`) |
+| **Sentence Transformers** | Embedding generation (`BAAI/bge-small-en`, `all-MiniLM-L6-v2`) |
+| **ChromaDB** | Vector database for RAG retrieval |
+| **Faster Whisper** | Speech-to-text transcription |
+| **Edge TTS** | Text-to-speech audio generation |
+
+**Deployment:** Render (initial) → RunPod (future scaling)
+
+### File Storage
+| Platform | Stores |
+|----------|--------|
+| **Cloudinary** | PDFs, report images, prescription images, voice files |
+
+---
+
+## System Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         CLIENT LAYER                                 │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │  Next.js (Frontend)                                         │   │
+│  │  • Authentication UI  • Dashboard  • Report/Prescription    │   │
+│  │    Upload  • Chat Interface  • Voice Recording              │   │
+│  └────────────────────────┬────────────────────────────────────┘   │
+└───────────────────────────┼─────────────────────────────────────────┘
+                            │ HTTPS / REST
+┌───────────────────────────┼─────────────────────────────────────────┐
+│                         API LAYER                                    │
+│  ┌────────────────────────▼────────────────────────────────────┐   │
+│  │  Node.js + Express (Backend API)                            │   │
+│  │  • JWT Auth  • User APIs  • File handling                 │   │
+│  │  • Prisma ORM → Neon PostgreSQL                           │   │
+│  │  • Proxy to AI Service                                    │   │
+│  └────────────────────────┬────────────────────────────────────┘   │
+└───────────────────────────┼─────────────────────────────────────────┘
+                            │ Internal HTTP
+┌───────────────────────────┼─────────────────────────────────────────┐
+│                         AI LAYER                                     │
+│  ┌────────────────────────▼────────────────────────────────────┐   │
+│  │  FastAPI (AI Microservice)                                  │   │
+│  │                                                             │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │   │
+│  │  │  PaddleOCR  │  │  Groq API   │  │  SentenceTransformers│  │   │
+│  │  │  (OCR)      │  │  (LLM)      │  │  (Embeddings)        │  │   │
+│  │  └─────────────┘  └─────────────┘  └─────────────────────┘  │   │
+│  │                                                             │   │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │   │
+│  │  │FasterWhisper│  │   Edge TTS  │  │     ChromaDB        │  │   │
+│  │  │  (STT)      │  │  (TTS)      │  │  (Vector Store)     │  │   │
+│  │  └─────────────┘  └─────────────┘  └─────────────────────┘  │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
+                            │
+┌───────────────────────────┼─────────────────────────────────────────┐
+│                      DATA LAYER                                      │
+│  ┌────────────────────────▼────────────────────────────────────┐   │
+│  │  Neon PostgreSQL              │  ChromaDB                  │   │
+│  │  • users  • reports            │  • Medical report          │   │
+│  │  • health_metrics             │    embeddings              │   │
+│  │  • prescriptions              │  • Prescription text       │   │
+│  │  • medicines  • chat_history  │    chunks                  │   │
+│  │                               │  • Medical knowledge       │   │
+│  └──────────────────────────────┴────────────────────────────┘   │
+│                                                                     │
+│  ┌─────────────────────────────────────────────────────────────┐   │
+│  │  Cloudinary (External File Store)                           │   │
+│  │  • PDFs  • Images  • Voice recordings                       │   │
+│  └─────────────────────────────────────────────────────────────┘   │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-### 3.2 Test OCR Directly (FastAPI)
+## Data Flow
 
-Use any image URL. For testing, upload a file to Cloudinary first (via Phase 2), or use a public URL.
-
-| Field | Value |
-|-------|-------|
-| **Method** | POST |
-| **URL** | `http://localhost:8000/ocr/extract` |
-| **Headers** | `Content-Type: application/json` |
-| **Body (raw JSON)** | See below |
-
-```json
-{
-  "file_url": "https://res.cloudinary.com/YOUR_CLOUD_NAME/image/upload/v1234567890/medexplain/reports/report_1234567890.pdf"
-}
+### 1. Medical Report Analysis
+```
+User uploads report image/PDF
+    ↓
+Next.js → POST /api/v1/reports/upload
+    ↓
+Express + Multer → Cloudinary Upload
+    ↓
+Prisma saves file_url to `reports` table
+    ↓
+User clicks "Analyze"
+    ↓
+POST /api/v1/reports/analyze/:id
+    ↓
+Express sends Cloudinary URL to FastAPI /ocr
+    ↓
+PaddleOCR extracts raw text
+    ↓
+Prompt Template + OCR text → Groq Llama3
+    ↓
+Structured JSON (hemoglobin, glucose, etc.)
+    ↓
+Prisma bulk inserts into `health_metrics`
+    ↓
+Dashboard renders trends & explanations
 ```
 
-**Expected Response (200):**
-```json
-{
-  "text": "Hemoglobin: 11.2 g/dL\nGlucose (Fasting): 140 mg/dL\n..."
-}
+### 2. Prescription Analysis
+```
+User uploads prescription image
+    ↓
+Next.js → POST /api/v1/prescriptions/upload
+    ↓
+Cloudinary → Prisma `prescriptions` table
+    ↓
+POST /api/v1/prescriptions/explain/:id
+    ↓
+FastAPI: OCR → Medicine Detection → LLM Explanation
+    ↓
+Prisma inserts into `medicines` table
+    ↓
+Frontend displays: name, purpose, dosage, side effects
 ```
 
-**Note:** If the file is not accessible or has no text, you may get empty text or an error.
-
----
-
-## Step 4: Report Analysis (Phase 4)
-
-### 4.1 Analyze Report
-
-This triggers the full pipeline: OCR → Groq LLM → save health metrics.
-
-| Field | Value |
-|-------|-------|
-| **Method** | POST |
-| **URL** | `http://localhost:3000/api/v1/reports/analyze/REPORT_ID_HERE` |
-| **Headers** | `Authorization: Bearer YOUR_TOKEN_HERE` |
-| **Body** | None (empty) |
-
-Replace `REPORT_ID_HERE` with the actual ID from Step 2.1.
-
-**Expected Response (200):**
-```json
-{
-  "summary": {
-    "hemoglobin": {
-      "value": "11.2",
-      "status": "Low",
-      "explanation": "Below normal range. May indicate mild anemia."
-    },
-    "glucose_fasting": {
-      "value": "140",
-      "status": "High",
-      "explanation": "Above normal range. May indicate elevated blood sugar."
-    }
-  },
-  "overall_summary": "Two values are outside normal ranges. Consult a doctor.",
-  "reportId": "550e8400-e29b-41d4-a716-446655440001"
-}
+### 3. RAG Chat Pipeline
+```
+User sends message: "Why is my glucose high?"
+    ↓
+POST /api/v1/chat
+    ↓
+FastAPI: Generate embedding of query
+    ↓
+Search ChromaDB for relevant context
+    ↓
+Inject context + query into prompt
+    ↓
+Groq Llama3 generates grounded response
+    ↓
+Express saves exchange to `chat_history`
+    ↓
+Frontend displays AI response
 ```
 
-**This may take 5–15 seconds** because it calls:
-1. Cloudinary (download)
-2. PaddleOCR (text extraction)
-3. Groq API (LLM analysis)
-4. PostgreSQL (save results)
-
----
-
-### 4.2 Verify Health Metrics Saved
-
-| Field | Value |
-|-------|-------|
-| **Method** | GET |
-| **URL** | `http://localhost:3000/api/v1/reports` |
-| **Headers** | `Authorization: Bearer YOUR_TOKEN_HERE` |
-
-**Expected Response (200):**
-```json
-{
-  "reports": [
-    {
-      "id": "550e8400-e29b-41d4-a716-446655440001",
-      "summary": "Two values are outside normal ranges...",
-      "health_metrics": [
-        {
-          "id": "770e8400-e29b-41d4-a716-446655440003",
-          "metric_name": "hemoglobin",
-          "metric_value": "11.2",
-          "status": "Low",
-          "explanation": "Below normal range. May indicate mild anemia."
-        },
-        {
-          "id": "880e8400-e29b-41d4-a716-446655440004",
-          "metric_name": "glucose_fasting",
-          "metric_value": "140",
-          "status": "High",
-          "explanation": "Above normal range. May indicate elevated blood sugar."
-        }
-      ]
-    }
-  ]
-}
+### 4. Voice Assistant Pipeline
+```
+Microphone captures audio
+    ↓
+Faster Whisper (Speech-to-Text)
+    ↓
+Text processed through RAG Chat Pipeline
+    ↓
+LLM response generated
+    ↓
+Edge TTS (Text-to-Speech)
+    ↓
+Audio playback to user
 ```
 
-Notice: `summary` is now filled, and `health_metrics` contains the AI-generated data.
+---
+
+## Database Schema (PostgreSQL)
+
+| Table | Purpose |
+|-------|---------|
+| `users` | Authentication & profile data |
+| `reports` | Uploaded medical report metadata & Cloudinary URLs |
+| `health_metrics` | Extracted metrics (hemoglobin, glucose, etc.) with status & explanation |
+| `prescriptions` | Uploaded prescription metadata & Cloudinary URLs |
+| `medicines` | Detected medicines with usage, dosage, and side effects |
+| `chat_history` | User-AI conversation logs |
 
 ---
 
-### 4.3 Check Database Directly (Optional)
+## API Overview
 
-```powershell
-cd my-app
-npx prisma studio
-```
-
-- Open `health_metrics` table
-- Verify rows exist with correct `report_id`
-- Open `reports` table
-- Verify `summary` column is updated
-
----
-
-## Step 5: Prescription Explainer (Phase 5)
-
-### 5.1 Explain Prescription
-
-| Field | Value |
-|-------|-------|
-| **Method** | POST |
-| **URL** | `http://localhost:3000/api/v1/prescriptions/explain/PRESCRIPTION_ID_HERE` |
-| **Headers** | `Authorization: Bearer YOUR_TOKEN_HERE` |
-| **Body** | None (empty) |
-
-Replace `PRESCRIPTION_ID_HERE` with the ID from Step 2.2.
-
-**Expected Response (200):**
-```json
-{
-  "medicines": [
-    {
-      "name": "Paracetamol",
-      "purpose": "Reduces fever and relieves mild to moderate pain",
-      "dosage": "500mg, twice daily",
-      "usage_instructions": "Take after meals with water",
-      "side_effects": "Rare: skin rash, liver damage with overdose"
-    },
-    {
-      "name": "Amoxicillin",
-      "purpose": "Treats bacterial infections",
-      "dosage": "250mg, three times daily",
-      "usage_instructions": "Take with food",
-      "side_effects": "Nausea, diarrhea, allergic rash"
-    }
-  ],
-  "pharmacy_notes": "Complete full course even if symptoms improve",
-  "prescriptionId": "660e8400-e29b-41d4-a716-446655440002"
-}
-```
-
-**This may take 5–15 seconds** (OCR + LLM + database write).
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| POST | `/auth/register` | No | Register new user |
+| POST | `/auth/login` | No | Login user |
+| POST | `/reports/upload` | Yes | Upload report file |
+| POST | `/reports/analyze/:id` | Yes | Analyze uploaded report |
+| GET | `/reports` | Yes | Get all user reports |
+| POST | `/prescriptions/upload` | Yes | Upload prescription |
+| POST | `/prescriptions/explain/:id` | Yes | Explain prescription |
+| POST | `/chat` | Yes | AI chat message |
 
 ---
 
-### 5.2 Verify Medicines Saved
+## Authentication
 
-| Field | Value |
-|-------|-------|
-| **Method** | GET |
-| **URL** | `http://localhost:3000/api/v1/prescriptions` |
-| **Headers** | `Authorization: Bearer YOUR_TOKEN_HERE` |
-
-**Note:** If you don't have a `GET /prescriptions` endpoint yet, check Prisma Studio directly.
-
-**In Prisma Studio:**
-- Open `medicines` table
-- Verify rows exist with correct `prescription_id`
-- Open `prescriptions` table
-- Verify `extracted_text` column is updated with OCR text
+- **JWT-only** authentication (no refresh token rotation)
+- **bcrypt** password hashing with salt rounds = 10
+- Token stored in browser `localStorage`
+- Attached to every request via `Authorization: Bearer <token>` header
+- Middleware-based route protection on both frontend and backend
 
 ---
 
-## Step 6: Error Testing
+## Key AI Models & Tools
 
-### 6.1 Invalid Token
-
-| Field | Value |
-|-------|-------|
-| **Method** | GET |
-| **URL** | `http://localhost:3000/api/v1/reports` |
-| **Headers** | `Authorization: Bearer invalid_token_here` |
-
-**Expected:** `401 Unauthorized`
-
----
-
-### 6.2 Upload Without File
-
-| Field | Value |
-|-------|-------|
-| **Method** | POST |
-| **URL** | `http://localhost:3000/api/v1/reports/upload` |
-| **Headers** | `Authorization: Bearer YOUR_TOKEN_HERE` |
-| **Body** | `form-data` with only `reportName`, no `file` |
-
-**Expected:** `400 Bad Request` — "No file provided"
+| Component | Tool / Model |
+|-----------|--------------|
+| LLM Provider | Groq API |
+| Recommended Model | `llama-3.1-8b-instant` |
+| OCR | PaddleOCR |
+| Embeddings | `BAAI/bge-small-en`, `all-MiniLM-L6-v2` |
+| Vector Database | ChromaDB |
+| Speech-to-Text | `faster-whisper` |
+| Text-to-Speech | Edge TTS |
 
 ---
 
-### 6.3 Analyze Non-Existent Report
+## MVP Scope
 
-| Field | Value |
-|-------|-------|
-| **Method** | POST |
-| **URL** | `http://localhost:3000/api/v1/reports/analyze/00000000-0000-0000-0000-000000000000` |
-| **Headers** | `Authorization: Bearer YOUR_TOKEN_HERE` |
+- [x] Authentication (JWT, login/signup)
+- [x] Report upload (PDF/image)
+- [x] Prescription upload (image)
+- [x] Cloudinary file storage
+- [x] PostgreSQL + Prisma ORM setup
+- [ ] OCR extraction & AI report simplification *(Phase 3–4)*
+- [ ] Prescription medicine detection & explanation *(Phase 5)*
+- [ ] Health Dashboard with visualizations *(Phase 6)*
+- [ ] RAG Chatbot *(Phase 7)*
+- [ ] Voice Assistant *(Phase 7)*
 
-**Expected:** `404 Not Found` — "Report not found"
+## Future Scope
 
----
-
-### 6.4 OCR Invalid URL
-
-| Field | Value |
-|-------|-------|
-| **Method** | POST |
-| **URL** | `http://localhost:8000/ocr/extract` |
-| **Headers** | `Content-Type: application/json` |
-| **Body** | `{ "file_url": "https://invalid-url.com/fake.pdf" }` |
-
-**Expected:** `400` or `500` error — download failed
-
----
-
-## Postman Collection Tips
-
-### Create a Collection
-1. Open Postman
-2. Click "New" → "Collection"
-3. Name it "MedExplain AI"
-
-### Set Collection Variables
-| Variable | Initial Value | Description |
-|----------|--------------|-------------|
-| `base_url` | `http://localhost:3000/api/v1` | Node backend |
-| `ai_url` | `http://localhost:8000` | FastAI service |
-| `token` | *(empty)* | Filled after login |
-
-### Use Variables in Requests
-- URL: `{{base_url}}/auth/login`
-- Header: `Authorization: Bearer {{token}}`
-
-### Set Token Automatically (Tests Tab)
-In the **Login** request, go to **Tests** tab and add:
-```javascript
-var jsonData = pm.response.json();
-pm.collectionVariables.set("token", jsonData.token);
-```
-
-This automatically saves the token after every login, so you don't have to copy-paste it manually.
+- Multi-language support
+- Doctor dashboard
+- Appointment integration
+- Health recommendations engine
+- Fine-tuned medical LLM
+- Native mobile application
 
 ---
 
-## Full Endpoint Summary
+## Non-Functional Requirements
 
-| Phase | Method | Endpoint | Auth | Body | Description |
-|-------|--------|----------|------|------|-------------|
-| 1 | POST | `/auth/register` | No | JSON | Create account |
-| 1 | POST | `/auth/login` | No | JSON | Get JWT token |
-| 2 | POST | `/reports/upload` | Yes | form-data | Upload report file |
-| 2 | POST | `/prescriptions/upload` | Yes | form-data | Upload prescription |
-| 2 | GET | `/reports` | Yes | — | List user reports |
-| 3 | GET | `/health` | No | — | AI service health |
-| 3 | POST | `/ocr/extract` | No | JSON | Direct OCR test |
-| 4 | POST | `/reports/analyze/:id` | Yes | — | Analyze report |
-| 5 | POST | `/prescriptions/explain/:id` | Yes | — | Explain prescription |
+| Category | Requirement |
+|----------|-------------|
+| **Performance** | Response under 5 seconds for most operations |
+| **Security** | JWT authentication, password hashing, protected APIs |
+| **Scalability** | Separate AI microservice, modular architecture |
 
 ---
+## Getting Started
 
-## Troubleshooting
+### Prerequisites
+- Node.js 20+
+- Python 3.11+
+- Neon PostgreSQL account
+- Cloudinary account
+- Groq API key
 
-| Problem | Cause | Fix |
-|---------|-------|-----|
-| `401 Unauthorized` | Token missing or expired | Re-login, copy new token |
-| `500 Internal Server Error` | AI service not running | Start `uvicorn` in Terminal 1 |
-| OCR returns empty text | Image has no readable text / bad quality | Use clearer image |
-| Groq returns malformed JSON | Prompt not strict enough / OCR text garbled | Check OCR output quality |
-| Analysis takes >30 seconds | Slow internet / model downloading | Normal on first run, wait |
-| Cloudinary upload fails | Wrong credentials / unsigned uploads disabled | Check Cloudinary dashboard |
-| `ModuleNotFoundError` in FastAPI | Missing Python package | `pip install <package>` |
 
----
-
-## Success Checklist
-
-After completing all tests above, verify:
-
-- [ ] User can register and login
-- [ ] JWT token is returned and works on protected routes
-- [ ] Report PDF/image uploads to Cloudinary
-- [ ] Prescription image uploads to Cloudinary
-- [ ] Uploaded files appear in Prisma Studio (reports/prescriptions tables)
-- [ ] FastAI `/health` responds OK
-- [ ] OCR extracts text from a Cloudinary URL
-- [ ] Report analysis returns structured health metrics
-- [ ] Health metrics are saved to PostgreSQL
-- [ ] Prescription explanation returns medicine details
-- [ ] Medicines are saved to PostgreSQL
-- [ ] All error cases return proper status codes
-
----
-
-*Document Version: 1.0*  
-*Generated: May 2026*
-"""
-
-with open('/mnt/agents/output/Postman_Testing_Guide_Phase1-5.md', 'w', encoding='utf-8') as f:
-    f.write(doc_content)
-
-print("Postman testing guide created successfully")

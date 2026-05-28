@@ -19,7 +19,7 @@ def init_whisper() -> faster_whisper.WhisperModel:
             device=WHISPER_DEVICE,
             compute_type="int8" if WHISPER_DEVICE == "cpu" else "float16"
         )
-        print(f"✓ Whisper model initialized: {WHISPER_MODEL} (device: {WHISPER_DEVICE})")
+        print(f"[OK] Whisper model initialized: {WHISPER_MODEL} (device: {WHISPER_DEVICE})")
     
     return _whisper_model
 

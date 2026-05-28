@@ -1,11 +1,13 @@
+
 'use client';
 
+import { useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 export function useAuthenticatedFetch() {
   const { token } = useAuth();
 
-  const fetchWithAuth = async (url, options = {}) => {
+  const fetchWithAuth = useCallback(async (url, options = {}) => {
     const headers = new Headers(options.headers || {});
     const hasBody = Object.prototype.hasOwnProperty.call(options, 'body');
     const isFormData = hasBody && options.body instanceof FormData;
@@ -29,7 +31,7 @@ export function useAuthenticatedFetch() {
     }
 
     return response.json();
-  };
+  }, [token]);
 
   return fetchWithAuth;
 }
