@@ -1,81 +1,81 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { ProtectedRoute } from '@/components/ProtectedRoute';
+import { AIMessage } from '@/components/chat/AIMessage';
+import { ChatContainer } from '@/components/chat/ChatContainer';
+import { ChatInput } from '@/components/chat/ChatInput';
+import { TypingIndicator } from '@/components/chat/TypingIndicator';
+import { UserMessage } from '@/components/chat/UserMessage';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
-import { ArrowLeft, Send } from 'lucide-react';
+import { useToast } from '@/components/ui/Toast';
+import {
+  ArrowLeft, Heart, Trash2, Plus, MessagesSquare, Volume2,
+} from 'lucide-react';
 
-function formatTimestamp(value) {
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
+const QUICK_PROMPTS = [
+  'Explain my hemoglobin levels',
+  'What does this medicine do?',
+  'Summarize my latest report',
+  'Are my glucose levels normal?',
+  'What are the side effects?',
+];
 
-  return date.toLocaleTimeString('en-US', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+function formatDateSeparator(dateStr) {
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  const today = new Date();
+  const isToday = d.toDateString() === today.toDateString();
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = d.toDateString() === yesterday.toDateString();
+  if (isToday) return 'Today';
+  if (isYesterday) return 'Yesterday';
+  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 export default function ChatPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const reportId = searchParams.get('report_id');
   const { user } = useAuth();
   const fetchWithAuth = useAuthenticatedFetch();
+  const toast = useToast();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
-  const [error, setError] = useState(null);
-
-  const groupedMessages = useMemo(() => messages, [messages]);
-
-  const loadHistory = async () => {
-    try {
-      setIsLoading(true);
-      const data = await fetchWithAuth('/api/v1/chat/history');
-      const history = (data.messages || []).flatMap((entry) => [
-        {
-          id: `${entry.id}-user`,
-          role: 'user',
-          content: entry.userMessage,
-          createdAt: entry.createdAt,
-        },
-        {
-          id: `${entry.id}-ai`,
-          role: 'assistant',
-          content: entry.aiResponse,
-          createdAt: entry.createdAt,
-        },
-      ]);
-      setMessages(history);
-      setError(null);
-    } catch (err) {
-      setError(err.message || 'Failed to load chat history');
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
   useEffect(() => {
-    loadHistory();
-  }, []);
+    let cancelled = false;
+    const loadHistory = async () => {
+      try {
+        const data = await fetchWithAuth('/api/v1/chat/history');
+        const history = (data.messages || []).flatMap((entry) => [
+          { id: `${entry.id}-user`, role: 'user', content: entry.userMessage, createdAt: entry.createdAt, sources: [] },
+          { id: `${entry.id}-ai`, role: 'assistant', content: entry.aiResponse, createdAt: entry.createdAt, sources: [] },
+        ]);
+        if (!cancelled) { setMessages(history); }
+      } catch {
+        if (!cancelled) toast.error('Failed to load chat history');
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+    void loadHistory();
+    return () => { cancelled = true; };
+  }, [fetchWithAuth, toast]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isSending) {
-      return;
-    }
+  const handleSend = async (text) => {
+    const messageText = text || input.trim();
+    if (!messageText || isSending) return;
 
     const userMessage = {
       id: `local-${Date.now()}`,
       role: 'user',
-      content: input.trim(),
+      content: messageText,
       createdAt: new Date().toISOString(),
     };
-
     setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setIsSending(true);
@@ -83,108 +83,127 @@ export default function ChatPage() {
     try {
       const data = await fetchWithAuth('/api/v1/chat', {
         method: 'POST',
-        body: JSON.stringify({
-          message: userMessage.content,
-          report_id: reportId,
-        }),
+        body: JSON.stringify({ message: messageText }),
       });
-
       const assistantMessage = {
         id: `local-${Date.now()}-ai`,
         role: 'assistant',
-        content: data.answer,
+        content: data.response || data.answer,
         createdAt: new Date().toISOString(),
+        sources: data.sources || [],
       };
-
       setMessages((prev) => [...prev, assistantMessage]);
-      setError(null);
     } catch (err) {
-      setError(err.message || 'Failed to send message');
+      toast.error(err.message || 'AI is temporarily unavailable. Please try again.');
     } finally {
       setIsSending(false);
     }
   };
 
+  const handleNewChat = () => {
+    setMessages([]);
+    setInput('');
+  };
+
+  // Group messages by date
+  const messagesWithSeparators = useMemo(() => {
+    const result = [];
+    let lastDate = null;
+    for (const msg of messages) {
+      const dateLabel = formatDateSeparator(msg.createdAt);
+      if (dateLabel && dateLabel !== lastDate) {
+        result.push({ type: 'separator', label: dateLabel, id: `sep-${dateLabel}-${msg.id}` });
+        lastDate = dateLabel;
+      }
+      result.push({ type: 'message', ...msg });
+    }
+    return result;
+  }, [messages]);
+
   return (
     <ProtectedRoute>
-      <div className="min-h-screen bg-gradient-to-br from-[#f4f0ea] via-white to-[#eef6ff] text-slate-900">
-        <div className="mx-auto flex max-w-5xl flex-col gap-6 px-6 py-8">
-          <header className="flex flex-wrap items-center justify-between gap-4">
-            <div>
+      <div className="flex min-h-screen flex-col bg-gradient-to-br from-[#f4f0ea] via-white to-[#eef6ff]">
+        {/* Top bar */}
+        <header className="sticky top-0 z-30 border-b border-slate-200/60 bg-white/80 backdrop-blur-xl">
+          <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6">
+            <div className="flex items-center gap-3">
               <button
                 onClick={() => router.push('/dashboard')}
-                className="flex items-center gap-2 text-sm font-semibold text-slate-500"
+                className="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Back to dashboard"
               >
-                <ArrowLeft className="h-4 w-4" />
-                Back to dashboard
+                <ArrowLeft className="h-4.5 w-4.5" />
               </button>
-              <h1 className="mt-4 text-3xl font-semibold">AI Health Assistant</h1>
-              <p className="mt-2 text-sm text-slate-600">
-                Ask about reports, prescriptions, or general medical questions.
-              </p>
-            </div>
-            <div className="rounded-2xl border border-white/70 bg-white/70 px-4 py-3 text-sm shadow">
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Signed in</p>
-              <p className="font-semibold">{user?.email}</p>
-            </div>
-          </header>
-
-          <section className="flex min-h-[60vh] flex-col rounded-3xl border border-white/70 bg-white/80 shadow-[0_25px_60px_rgba(15,23,42,0.08)]">
-            <div className="flex-1 space-y-4 overflow-y-auto px-6 py-6">
-              {isLoading && (
-                <p className="text-sm text-slate-500">Loading conversation...</p>
-              )}
-              {!isLoading && groupedMessages.length === 0 && (
-                <div className="rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-4 py-6 text-center text-sm text-slate-500">
-                  No messages yet. Ask your first question to start the RAG chat.
+              <div className="flex items-center gap-2">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-teal-600">
+                  <Heart className="h-4 w-4 text-white" aria-hidden="true" />
                 </div>
-              )}
-              {groupedMessages.map((message) => (
-                <div
-                  key={message.id}
-                  className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                >
-                  <div
-                    className={`max-w-[70%] rounded-2xl px-4 py-3 text-sm shadow-sm ${
-                      message.role === 'user'
-                        ? 'bg-slate-900 text-white'
-                        : 'bg-white text-slate-800'
-                    }`}
-                  >
-                    <p>{message.content}</p>
-                    <p className="mt-2 text-[11px] opacity-60">
-                      {formatTimestamp(message.createdAt)}
-                    </p>
-                  </div>
+                <div>
+                  <h1 className="text-sm font-bold text-slate-900">AI Health Assistant</h1>
+                  <p className="text-[10px] text-emerald-600 font-medium">RAG-powered • Grounded in your data</p>
                 </div>
-              ))}
-            </div>
-
-            <div className="border-t border-slate-100 px-6 py-4">
-              {error && (
-                <p className="mb-3 rounded-full bg-rose-100 px-4 py-2 text-xs font-semibold text-rose-700">
-                  {error}
-                </p>
-              )}
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <textarea
-                  value={input}
-                  onChange={(event) => setInput(event.target.value)}
-                  placeholder="Ask about a report, prescription, or medical topic..."
-                  rows={2}
-                  className="flex-1 resize-none rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm shadow-sm focus:outline-none focus:ring-2 focus:ring-slate-900"
-                />
-                <button
-                  onClick={handleSend}
-                  disabled={isSending}
-                  className="flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white transition disabled:opacity-60"
-                >
-                  {isSending ? 'Sending...' : 'Send'}
-                  <Send className="h-4 w-4" />
-                </button>
               </div>
             </div>
-          </section>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => router.push('/voice')}
+                className="rounded-lg p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Switch to voice assistant"
+              >
+                <Volume2 className="h-4.5 w-4.5" />
+              </button>
+              <button
+                onClick={handleNewChat}
+                className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
+                aria-label="Start a new chat conversation"
+              >
+                <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+                New Chat
+              </button>
+            </div>
+          </div>
+        </header>
+
+        {/* Chat body */}
+        <div className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 px-4 py-4 sm:px-6">
+          <ChatContainer
+            isLoading={isLoading}
+            isEmpty={messages.length === 0}
+            emptyMessage="Ask me anything about your health reports or prescriptions"
+            quickPrompts={QUICK_PROMPTS}
+            onQuickPrompt={(prompt) => handleSend(prompt)}
+          >
+            {messagesWithSeparators.map((item) => {
+              if (item.type === 'separator') {
+                return (
+                  <div key={item.id} className="flex items-center gap-3 py-2" role="separator">
+                    <div className="h-px flex-1 bg-slate-200" />
+                    <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">{item.label}</span>
+                    <div className="h-px flex-1 bg-slate-200" />
+                  </div>
+                );
+              }
+              return item.role === 'user' ? (
+                <UserMessage key={item.id} content={item.content} createdAt={item.createdAt} />
+              ) : (
+                <AIMessage key={item.id} content={item.content} createdAt={item.createdAt} sources={item.sources} />
+              );
+            })}
+            {isSending && <TypingIndicator />}
+          </ChatContainer>
+
+          {/* Input */}
+          <div className="rounded-2xl border border-white/70 bg-white/80 shadow-[0_-10px_40px_rgba(15,23,42,0.06)]">
+            <ChatInput
+              value={input}
+              onChange={setInput}
+              onSend={() => handleSend()}
+              onMicClick={() => router.push('/voice')}
+              disabled={isSending}
+              placeholder="Ask about a report, prescription, or health topic..."
+              showMic
+            />
+          </div>
         </div>
       </div>
     </ProtectedRoute>

@@ -8,11 +8,7 @@ function parseMetricValue(value) {
   }
 
   const match = String(value).match(/-?\d+(?:\.\d+)?/);
-  if (!match) {
-    return null;
-  }
-
-  return Number(match[0]);
+  return match ? Number(match[0]) : null;
 }
 
 function formatDateKey(dateValue) {
@@ -24,23 +20,19 @@ function formatDateKey(dateValue) {
   return date.toISOString().slice(0, 10);
 }
 
-function buildNormalizedSeries(series) {
-  const values = series.map((entry) => entry.value).filter((value) => value !== null);
-  if (values.length === 0) {
-    return series.map((entry) => ({
-      ...entry,
-      normalized: null,
-    }));
-  }
+function slugifyMetricName(metricName) {
+  return String(metricName || 'metric')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '') || 'metric';
+}
 
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const range = max - min || 1;
-
-  return series.map((entry) => ({
-    ...entry,
-    normalized: entry.value === null ? null : (entry.value - min) / range,
-  }));
+function humanizeMetricName(metricName) {
+  return String(metricName || '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase()) || 'Metric';
 }
 
 export async function GET(request) {
@@ -57,42 +49,19 @@ export async function GET(request) {
     const userId = user.userId;
 
     const [
-      totalReports,
-      analyzedReports,
-      pendingReports,
-      totalPrescriptions,
-      medicinesExplained,
-      totalMetricsTracked,
+      reportsCount,
+      prescriptionsCount,
+      healthMetricsCount,
       recentReports,
       recentPrescriptions,
-      metricStatuses,
-      recentMetrics,
-      pendingPrescriptionCount,
+      healthMetrics,
+      healthAlerts,
     ] = await Promise.all([
       prisma.reports.count({
         where: { user_id: userId },
       }),
-      prisma.reports.count({
-        where: {
-          user_id: userId,
-          summary: { not: null },
-        },
-      }),
-      prisma.reports.count({
-        where: {
-          user_id: userId,
-          summary: null,
-        },
-      }),
       prisma.prescriptions.count({
         where: { user_id: userId },
-      }),
-      prisma.medicines.count({
-        where: {
-          prescription: {
-            user_id: userId,
-          },
-        },
       }),
       prisma.health_metrics.count({
         where: {
@@ -121,36 +90,11 @@ export async function GET(request) {
           },
         },
       }),
-      prisma.health_metrics.groupBy({
-        by: ['status'],
-        where: {
-          report: {
-            user_id: userId,
-          },
-        },
-        _count: {
-          status: true,
-        },
-      }),
       prisma.health_metrics.findMany({
         where: {
           report: {
             user_id: userId,
           },
-          OR: [
-            {
-              metric_name: {
-                contains: 'hemoglobin',
-                mode: 'insensitive',
-              },
-            },
-            {
-              metric_name: {
-                contains: 'glucose',
-                mode: 'insensitive',
-              },
-            },
-          ],
         },
         orderBy: { created_at: 'asc' },
         select: {
@@ -158,153 +102,157 @@ export async function GET(request) {
           metric_value: true,
           status: true,
           created_at: true,
+          report_id: true,
+          report: {
+            select: {
+              report_name: true,
+            },
+          },
         },
       }),
-      prisma.prescriptions.count({
+      prisma.health_metrics.findMany({
         where: {
-          user_id: userId,
-          medicines: {
-            none: {},
+          report: {
+            user_id: userId,
+          },
+          status: {
+            in: ['High', 'Low'],
+          },
+        },
+        orderBy: { created_at: 'desc' },
+        take: 5,
+        select: {
+          metric_name: true,
+          metric_value: true,
+          status: true,
+          created_at: true,
+          report_id: true,
+          report: {
+            select: {
+              report_name: true,
+            },
           },
         },
       }),
     ]);
 
-    const statusDistribution = metricStatuses
-      .filter((entry) => entry.status)
-      .map((entry) => ({
-        status: entry.status,
-        count: entry._count.status,
-      }));
+    const groupedMetricsMap = new Map();
+    const chartRows = new Map();
 
-    const hemoglobinSeries = [];
-    const glucoseSeries = [];
-    const combinedMap = new Map();
-
-    for (const metric of recentMetrics) {
-      const normalizedName = String(metric.metric_name || '').toLowerCase();
+    for (const metric of healthMetrics) {
+      const metricName = metric.metric_name?.trim();
+      const numericValue = parseMetricValue(metric.metric_value);
       const dateKey = formatDateKey(metric.created_at);
-      const value = parseMetricValue(metric.metric_value);
 
-      if (!dateKey || value === null) {
+      if (!metricName || numericValue === null || !dateKey) {
         continue;
       }
 
-      if (normalizedName.includes('hemoglobin')) {
-        hemoglobinSeries.push({ date: dateKey, value });
-        const entry = combinedMap.get(dateKey) || { date: dateKey };
-        entry.hemoglobin = value;
-        combinedMap.set(dateKey, entry);
-      }
+      const slug = slugifyMetricName(metricName);
+      const point = {
+        date: dateKey,
+        value: numericValue,
+        status: metric.status,
+        created_at: metric.created_at,
+        report_id: metric.report_id,
+        report_name: metric.report?.report_name || null,
+      };
 
-      if (normalizedName.includes('glucose')) {
-        glucoseSeries.push({ date: dateKey, value });
-        const entry = combinedMap.get(dateKey) || { date: dateKey };
-        entry.glucose = value;
-        combinedMap.set(dateKey, entry);
-      }
+      const group = groupedMetricsMap.get(metricName) || {
+        metricName,
+        key: slug,
+        points: [],
+      };
+
+      group.points.push(point);
+      groupedMetricsMap.set(metricName, group);
+
+      const row = chartRows.get(dateKey) || { date: dateKey };
+      row[slug] = numericValue;
+      chartRows.set(dateKey, row);
     }
 
-    const combinedSeries = Array.from(combinedMap.values()).sort((a, b) =>
-      a.date.localeCompare(b.date)
-    );
+    const groupedMetrics = Array.from(groupedMetricsMap.values())
+      .map((group) => ({
+        ...group,
+        points: group.points.sort((left, right) => new Date(left.created_at) - new Date(right.created_at)),
+        latestPoint: group.points[group.points.length - 1] || null,
+      }))
+      .sort((left, right) => {
+        const countDelta = right.points.length - left.points.length;
+        if (countDelta !== 0) {
+          return countDelta;
+        }
 
-    const normalizedCombined = (() => {
-      const hemoglobinNormalized = buildNormalizedSeries(
-        combinedSeries.map((entry) => ({
-          date: entry.date,
-          value: entry.hemoglobin ?? null,
-        }))
-      );
-      const glucoseNormalized = buildNormalizedSeries(
-        combinedSeries.map((entry) => ({
-          date: entry.date,
-          value: entry.glucose ?? null,
-        }))
-      );
-
-      return combinedSeries.map((entry) => {
-        const hemo = hemoglobinNormalized.find((item) => item.date === entry.date);
-        const glu = glucoseNormalized.find((item) => item.date === entry.date);
-
-        return {
-          date: entry.date,
-          hemoglobin: hemo?.normalized ?? null,
-          glucose: glu?.normalized ?? null,
-        };
+        const leftTime = left.latestPoint ? new Date(left.latestPoint.created_at).getTime() : 0;
+        const rightTime = right.latestPoint ? new Date(right.latestPoint.created_at).getTime() : 0;
+        return rightTime - leftTime;
       });
-    })();
 
-    const latestHemoglobin = [...recentMetrics]
-      .filter((metric) =>
-        String(metric.metric_name || '').toLowerCase().includes('hemoglobin')
-      )
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
+    const selectedGroups = groupedMetrics.slice(0, 4);
+    const selectedKeys = selectedGroups.map((group) => group.key);
 
-    const latestGlucose = [...recentMetrics]
-      .filter((metric) =>
-        String(metric.metric_name || '').toLowerCase().includes('glucose')
-      )
-      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0];
-
-    const alerts = [];
-
-    if (latestHemoglobin?.status?.toLowerCase() === 'low') {
-      alerts.push({
-        title: 'Low hemoglobin detected',
-        message: 'Recent hemoglobin value is below the normal range.',
-        tone: 'warning',
+    const chartData = Array.from(chartRows.values())
+      .sort((left, right) => left.date.localeCompare(right.date))
+      .map((row) => {
+        const selectedRow = { date: row.date };
+        for (const key of selectedKeys) {
+          selectedRow[key] = row[key] ?? null;
+        }
+        return selectedRow;
       });
-    }
 
-    if (latestGlucose?.status?.toLowerCase() === 'high') {
-      alerts.push({
-        title: 'High glucose detected',
-        message: 'Recent glucose value is above the normal range.',
-        tone: 'alert',
-      });
-    }
+    const chartMetricLabels = selectedGroups.map((group) => ({
+      key: group.key,
+      label: humanizeMetricName(group.metricName),
+    }));
 
-    if (pendingPrescriptionCount > 0) {
-      alerts.push({
-        title: 'Prescriptions pending explanation',
-        message: `${pendingPrescriptionCount} prescription${
-          pendingPrescriptionCount === 1 ? '' : 's'
-        } still need explanation.`,
-        tone: 'info',
-      });
-    }
+    const recentReportSummaries = recentReports.map((report) => ({
+      id: report.id,
+      reportName: report.report_name,
+      createdAt: report.created_at,
+      summary: report.summary,
+      metricCount: report._count.health_metrics,
+      analysisStatus: report.summary ? 'Analyzed' : 'Pending',
+    }));
+
+    const recentPrescriptionSummaries = recentPrescriptions.map((prescription) => ({
+      id: prescription.id,
+      fileUrl: prescription.file_url,
+      createdAt: prescription.created_at,
+      medicineCount: prescription._count.medicines,
+      explanationStatus: prescription._count.medicines > 0 ? 'Explained' : 'Pending',
+    }));
+
+    const healthAlertsData = healthAlerts.map((metric) => ({
+      id: `${metric.report_id}-${metric.metric_name}-${metric.created_at}`,
+      metricName: metric.metric_name,
+      metricValue: metric.metric_value,
+      status: metric.status,
+      createdAt: metric.created_at,
+      reportId: metric.report_id,
+      reportName: metric.report?.report_name || 'Medical report',
+      tone: String(metric.status || '').toLowerCase() === 'low' ? 'warning' : 'alert',
+      title: `${metric.status} ${metric.metric_name || 'metric'}`,
+      message: `${metric.metric_name || 'This metric'} was recorded as ${metric.metric_value || 'unknown value'} in ${metric.report?.report_name || 'a report'}.`,
+    }));
 
     return NextResponse.json(
       {
         stats: {
-          totalReports,
-          analyzedReports,
-          pendingReports,
-          totalPrescriptions,
-          medicinesExplained,
-          totalMetricsTracked,
+          reportsCount,
+          prescriptionsCount,
+          healthMetricsCount,
         },
         trends: {
-          hemoglobin: hemoglobinSeries,
-          glucose: glucoseSeries,
-          statusDistribution,
-          combined: normalizedCombined,
+          groupedMetrics: selectedGroups,
+          chartData,
+          chartMetricLabels,
+          totalMetricGroups: groupedMetrics.length,
         },
-        recentReports: recentReports.map((report) => ({
-          id: report.id,
-          report_name: report.report_name,
-          created_at: report.created_at,
-          summary: report.summary,
-          metricCount: report._count.health_metrics,
-        })),
-        recentPrescriptions: recentPrescriptions.map((prescription) => ({
-          id: prescription.id,
-          file_url: prescription.file_url,
-          created_at: prescription.created_at,
-          medicineCount: prescription._count.medicines,
-        })),
-        alerts,
+        recentReports: recentReportSummaries,
+        recentPrescriptions: recentPrescriptionSummaries,
+        healthAlerts: healthAlertsData,
       },
       { status: 200 }
     );

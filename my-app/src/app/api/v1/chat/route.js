@@ -19,6 +19,26 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 45_000) {
   }
 }
 
+function formatMonthYear(value) {
+  if (!value) {
+    return '';
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'long',
+    year: 'numeric',
+  }).format(new Date(value));
+}
+
+function buildSourceLabel(source) {
+  const monthYear = formatMonthYear(source.created_at);
+  const baseLabel = source.type === 'report'
+    ? source.report_name || 'Medical Report'
+    : 'Prescription';
+
+  return monthYear ? `${baseLabel} ${monthYear}` : baseLabel;
+}
+
 export async function GET(request) {
   try {
     const { isValid, user } = requireAuth(request);
@@ -70,7 +90,6 @@ export async function POST(request) {
 
     const body = await request.json();
     const question = body?.message;
-    const reportId = body?.report_id;
 
     if (!question || !question.trim()) {
       return NextResponse.json(
@@ -80,14 +99,14 @@ export async function POST(request) {
     }
 
     const ragResponse = await fetchWithTimeout(
-      `${FASTAPI_BASE_URL}/chat`,
+      `${FASTAPI_BASE_URL}/chat/rag`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           question,
           user_id: user.userId,
-          report_id: reportId || null,
+          top_k: 5,
         }),
       },
       60_000
@@ -103,6 +122,64 @@ export async function POST(request) {
     }
 
     const ragData = await ragResponse.json();
+    const sourceRefs = (ragData.sources || [])
+      .map((source) => ({
+        type: source?.metadata?.report_id ? 'report' : source?.metadata?.prescription_id ? 'prescription' : source?.metadata?.source || 'unknown',
+        id: source?.metadata?.report_id || source?.metadata?.prescription_id || source?.metadata?.source_id || null,
+      }))
+      .filter((source) => source.id);
+
+    const uniqueSourceRefs = Array.from(
+      new Map(sourceRefs.map((source) => [`${source.type}:${source.id}`, source])).values()
+    );
+
+    const reportIds = uniqueSourceRefs.filter((source) => source.type === 'report').map((source) => source.id);
+    const prescriptionIds = uniqueSourceRefs.filter((source) => source.type === 'prescription').map((source) => source.id);
+
+    const [reports, prescriptions] = await Promise.all([
+      reportIds.length
+        ? prisma.reports.findMany({
+            where: {
+              id: { in: reportIds },
+              user_id: user.userId,
+            },
+          })
+        : [],
+      prescriptionIds.length
+        ? prisma.prescriptions.findMany({
+            where: {
+              id: { in: prescriptionIds },
+              user_id: user.userId,
+            },
+          })
+        : [],
+    ]);
+
+    const sourceLookup = new Map();
+
+    for (const report of reports) {
+      sourceLookup.set(`report:${report.id}`, {
+        type: 'report',
+        id: report.id,
+        label: buildSourceLabel(report),
+      });
+    }
+
+    for (const prescription of prescriptions) {
+      sourceLookup.set(`prescription:${prescription.id}`, {
+        type: 'prescription',
+        id: prescription.id,
+        label: buildSourceLabel(prescription),
+      });
+    }
+
+    const sources = uniqueSourceRefs.map((source) =>
+      sourceLookup.get(`${source.type}:${source.id}`) || {
+        type: source.type,
+        id: source.id,
+        label: source.type === 'report' ? 'Medical Report' : 'Prescription',
+      }
+    );
 
     await prisma.chat_history.create({
       data: {
@@ -115,8 +192,8 @@ export async function POST(request) {
     return NextResponse.json(
       {
         success: true,
-        answer: ragData.answer,
-        sources: ragData.sources || [],
+        response: ragData.answer,
+        sources,
         model: ragData.model,
       },
       { status: 200 }

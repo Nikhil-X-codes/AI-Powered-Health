@@ -152,7 +152,15 @@ export async function POST(request, { params }) {
         )
         .join('\n');
 
-      const textToEmbed = `Report: ${report.report_name || 'Medical Report'}\nSummary: ${updatedReport.summary}\nMetrics:\n${metricsText}`;
+      const reportTextToEmbed = [
+        `Report: ${report.report_name || 'Medical Report'}`,
+        'OCR Text:',
+        extractedText,
+        updatedReport.summary ? `Summary: ${updatedReport.summary}` : null,
+        metricsText ? `Metrics:\n${metricsText}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
 
       await fetchWithTimeout(
         `${FASTAPI_BASE_URL}/embed`,
@@ -160,7 +168,7 @@ export async function POST(request, { params }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            texts: [textToEmbed],
+            texts: [reportTextToEmbed],
             source: 'report',
             user_id: userId,
             report_id: reportId,

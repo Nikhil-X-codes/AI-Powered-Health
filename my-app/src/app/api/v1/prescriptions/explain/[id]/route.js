@@ -160,7 +160,14 @@ export async function POST(request, { params }) {
         )
         .join('\n');
 
-      const textToEmbed = `Prescription medicines:\n${medicinesText}\n\nOCR Text:\n${extractedText}`;
+      const prescriptionTextToEmbed = [
+        'Prescription:',
+        'OCR Text:',
+        extractedText,
+        medicinesText ? `Medicines:\n${medicinesText}` : null,
+      ]
+        .filter(Boolean)
+        .join('\n\n');
 
       await fetchWithTimeout(
         `${FASTAPI_BASE_URL}/embed`,
@@ -168,7 +175,7 @@ export async function POST(request, { params }) {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            texts: [textToEmbed],
+            texts: [prescriptionTextToEmbed],
             source: 'prescription',
             user_id: userId,
             prescription_id: prescriptionId,
