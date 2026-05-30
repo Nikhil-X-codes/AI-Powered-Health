@@ -55,8 +55,11 @@ export default function ReportsPage() {
       const formData = new FormData();
       formData.append('report', uploadFile);
       if (reportName.trim()) formData.append('report_name', reportName.trim());
-      await fetchWithAuth('/api/v1/reports/upload', { method: 'POST', body: formData });
-      toast.success('Report uploaded successfully');
+      const uploadResult = await fetchWithAuth('/api/v1/reports/upload', { method: 'POST', body: formData });
+      if (uploadResult?.reportId) {
+        await fetchWithAuth(`/api/v1/reports/analyze/${uploadResult.reportId}`, { method: 'POST' });
+      }
+      toast.success('Report uploaded and analyzed successfully');
       setShowUpload(false);
       setUploadFile(null);
       setReportName('');

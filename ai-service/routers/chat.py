@@ -7,7 +7,6 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
 from services import get_groq_client, embed_text, search
-from utils import RAG_MEDICAL_QA_PROMPT
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
 
@@ -150,12 +149,43 @@ async def rag_question_answering(request: RAGRequest):
             source_label = f"{source_type}" + (f" #{source_id}" if source_id else "")
             context_lines.append(f"- {source_label}: {doc}")
 
-        knowledge_context = "\n".join(context_lines) if context_lines else "No relevant context found."
+        has_personal_context = len(context_lines) > 0
+        knowledge_context = "\n".join(context_lines) if has_personal_context else ""
 
-        prompt = RAG_MEDICAL_QA_PROMPT.format(
-            knowledge_context=knowledge_context,
-            question=request.question,
-        )
+        if has_personal_context:
+            prompt = f"""You are a medical assistant.
+
+Use the PERSONAL RECORD CONTEXT below as primary evidence. If the context is incomplete for the user question, you may supplement with general medical knowledge.
+
+Rules:
+- Clearly prioritize personal record context.
+- If you add general medical knowledge, explicitly say it is general and may not reflect the user's exact case.
+- Keep response practical and concise.
+- Do not invent personal record facts that are not in the context.
+
+PERSONAL RECORD CONTEXT:
+{knowledge_context}
+
+USER QUESTION:
+{request.question}
+
+Return a clear answer with short bullet points when useful.
+"""
+        else:
+            prompt = f"""You are a medical assistant.
+
+No personal record context is available for this query.
+Answer using general medical knowledge only.
+
+Rules:
+- Start your answer with: "General medical information (not from your personal records):"
+- Keep answer clear, accurate, and concise.
+- Include common side effects, common serious side effects, and when to seek care if relevant.
+- Avoid definitive diagnosis.
+
+USER QUESTION:
+{request.question}
+"""
 
         client = get_groq_client()
         from langchain_core.messages import HumanMessage

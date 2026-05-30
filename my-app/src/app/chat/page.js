@@ -81,9 +81,12 @@ export default function ChatPage() {
     setIsSending(true);
 
     try {
-      const data = await fetchWithAuth('/api/v1/chat', {
+      const data = await fetchWithAuth('/api/v1/chat/rag', {
         method: 'POST',
-        body: JSON.stringify({ message: messageText }),
+        body: JSON.stringify({
+          question: messageText,
+          user_id: user?.userId,
+        }),
       });
       const assistantMessage = {
         id: `local-${Date.now()}-ai`,
@@ -91,6 +94,7 @@ export default function ChatPage() {
         content: data.response || data.answer,
         createdAt: new Date().toISOString(),
         sources: data.sources || [],
+        contextMode: data.contextMode || ((data.sources || []).length === 0 ? 'general' : 'personal'),
       };
       setMessages((prev) => [...prev, assistantMessage]);
     } catch (err) {
@@ -186,7 +190,13 @@ export default function ChatPage() {
               return item.role === 'user' ? (
                 <UserMessage key={item.id} content={item.content} createdAt={item.createdAt} />
               ) : (
-                <AIMessage key={item.id} content={item.content} createdAt={item.createdAt} sources={item.sources} />
+                <AIMessage
+                  key={item.id}
+                  content={item.content}
+                  createdAt={item.createdAt}
+                  sources={item.sources}
+                  contextMode={item.contextMode}
+                />
               );
             })}
             {isSending && <TypingIndicator />}

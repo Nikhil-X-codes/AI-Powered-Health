@@ -188,63 +188,72 @@ async def embed_pipeline(request: EmbedPipelineRequest):
             "report_id": "..."
         }
     """
-    if not request.texts:
-        raise HTTPException(status_code=400, detail="texts must be a non-empty array")
+    try:
+        if not request.texts:
+            raise HTTPException(status_code=400, detail="texts must be a non-empty array")
 
-    if not request.user_id:
-        raise HTTPException(status_code=400, detail="user_id is required")
+        if not request.user_id:
+            raise HTTPException(status_code=400, detail="user_id is required")
 
-    if request.source not in {"report", "prescription", "medical_kb"}:
-        raise HTTPException(status_code=400, detail="source must be report, prescription, or medical_kb")
+        if request.source not in {"report", "prescription", "medical_kb"}:
+            raise HTTPException(status_code=400, detail="source must be report, prescription, or medical_kb")
 
-    all_texts = []
-    all_metadatas = []
-    all_ids = []
+        all_texts = []
+        all_metadatas = []
+        all_ids = []
 
-    for text_index, text in enumerate(request.texts):
-        if not text or not text.strip():
-            continue
+        for text_index, text in enumerate(request.texts):
+            if not text or not text.strip():
+                continue
 
-        chunks = chunk_text_with_metadata(
-            text,
-            chunk_size=request.chunk_size or 500,
-            overlap=request.overlap or 50,
-            source=request.source,
+            chunks = chunk_text_with_metadata(
+                text,
+                chunk_size=request.chunk_size or 500,
+                overlap=request.overlap or 50,
+                source=request.source,
+            )
+
+            for chunk in chunks:
+                chunk_num = chunk.get("chunk_num")
+                # Ensure chunk IDs remain unique across multiple texts by
+                # including the text index in the generated chunk id.
+                chunk_id_prefix = request.report_id or request.prescription_id or f"text_{text_index}"
+                chunk_id = f"{request.source}_{chunk_id_prefix}_text_{text_index}_chunk_{chunk_num}"
+
+                metadata = {
+                    "user_id": request.user_id,
+                    "source": request.source,
+                    "report_id": request.report_id,
+                    "prescription_id": request.prescription_id,
+                    "chunk_num": chunk.get("chunk_num"),
+                    "total_chunks": chunk.get("total_chunks"),
+                    "start_pos": chunk.get("start_pos"),
+                    "end_pos": chunk.get("end_pos"),
+                    "length": chunk.get("length"),
+                }
+
+                all_texts.append(chunk.get("text", ""))
+                all_metadatas.append(metadata)
+                all_ids.append(chunk_id)
+
+        if not all_texts:
+            raise HTTPException(status_code=400, detail="No valid text provided")
+
+        embeddings = embed_texts(all_texts)
+        add_documents(
+            documents=all_texts,
+            metadatas=all_metadatas,
+            ids=all_ids,
+            embeddings=embeddings,
         )
 
-        for chunk in chunks:
-            chunk_num = chunk.get("chunk_num")
-            chunk_id_prefix = request.report_id or request.prescription_id or f"text_{text_index}"
-            chunk_id = f"{request.source}_{chunk_id_prefix}_chunk_{chunk_num}"
-
-            metadata = {
-                "user_id": request.user_id,
-                "source": request.source,
-                "report_id": request.report_id,
-                "prescription_id": request.prescription_id,
-                "chunk_num": chunk.get("chunk_num"),
-                "total_chunks": chunk.get("total_chunks"),
-                "start_pos": chunk.get("start_pos"),
-                "end_pos": chunk.get("end_pos"),
-                "length": chunk.get("length"),
-            }
-
-            all_texts.append(chunk.get("text", ""))
-            all_metadatas.append(metadata)
-            all_ids.append(chunk_id)
-
-    if not all_texts:
-        raise HTTPException(status_code=400, detail="No valid text provided")
-
-    embeddings = embed_texts(all_texts)
-    add_documents(
-        documents=all_texts,
-        metadatas=all_metadatas,
-        ids=all_ids,
-        embeddings=embeddings,
-    )
-
-    return {
-        "status": "embedded",
-        "chunks": len(all_texts),
-    }
+        return {
+            "status": "embedded",
+            "chunks": len(all_texts),
+        }
+    except HTTPException:
+        # Re-raise known HTTPExceptions so FastAPI returns their status codes
+        raise
+    except Exception as e:
+        # Surface exceptions as HTTP 500 with the error message to aid debugging
+        raise HTTPException(status_code=500, detail=str(e))

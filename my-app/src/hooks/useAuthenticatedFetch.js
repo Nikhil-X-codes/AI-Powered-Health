@@ -3,6 +3,7 @@
 
 import { useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { getFriendlyApiErrorMessage } from '@/lib/error-messages';
 
 export function useAuthenticatedFetch() {
   const { token } = useAuth();
@@ -26,8 +27,30 @@ export function useAuthenticatedFetch() {
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.error || `Request failed: ${response.status}`);
+      let errorPayload = {};
+      const contentType = response.headers.get('content-type') || '';
+
+      try {
+        if (contentType.includes('application/json')) {
+          errorPayload = await response.json();
+        } else {
+          errorPayload = { error: await response.text() };
+        }
+      } catch {
+        errorPayload = {};
+      }
+
+      const error = new Error(
+        getFriendlyApiErrorMessage(
+          {
+            message: errorPayload.error || errorPayload.detail || `Request failed: ${response.status}`,
+            status: response.status,
+          },
+          `Request failed: ${response.status}`
+        )
+      );
+      error.status = response.status;
+      throw error;
     }
 
     return response.json();

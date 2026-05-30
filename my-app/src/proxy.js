@@ -13,28 +13,9 @@ const verifyToken = async (token) => {
   }
 };
 
-export async function middleware(request) {
-  const pathname = request.nextUrl.pathname;
-
-  // Skip API routes; do not run middleware on backend APIs.
-  if (pathname.startsWith('/api/')) {
-    return NextResponse.next();
-  }
-
-  // Skip public pages
-  const publicPages = ['/auth/login', '/auth/signup', '/'];
-  if (publicPages.includes(pathname)) {
-    return NextResponse.next();
-  }
-
-  // Only protect dashboard routes
-  if (!pathname.startsWith('/dashboard')) {
-    return NextResponse.next();
-  }
-
-  // Protect dashboard pages
-  const token = request.cookies.get('token')?.value || 
-                request.headers.get('Authorization')?.replace('Bearer ', '');
+export async function proxy(request) {
+  const token = request.cookies.get('token')?.value ||
+    request.headers.get('Authorization')?.replace('Bearer ', '');
 
   if (!token) {
     return NextResponse.redirect(new URL('/auth/login', request.url));
@@ -57,7 +38,5 @@ export async function middleware(request) {
 }
 
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon.ico).*)',
-  ],
+  matcher: ['/dashboard/:path*'],
 };

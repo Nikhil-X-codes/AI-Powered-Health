@@ -51,8 +51,11 @@ export default function PrescriptionsPage() {
       setIsUploading(true);
       const formData = new FormData();
       formData.append('prescription', uploadFile);
-      await fetchWithAuth('/api/v1/prescriptions/upload', { method: 'POST', body: formData });
-      toast.success('Prescription uploaded successfully');
+      const uploadResult = await fetchWithAuth('/api/v1/prescriptions/upload', { method: 'POST', body: formData });
+      if (uploadResult?.prescriptionId) {
+        await fetchWithAuth(`/api/v1/prescriptions/explain/${uploadResult.prescriptionId}`, { method: 'POST' });
+      }
+      toast.success('Prescription uploaded and explained successfully');
       setShowUpload(false);
       setUploadFile(null);
       await loadPrescriptions();

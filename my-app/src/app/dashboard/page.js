@@ -245,11 +245,14 @@ export default function DashboardPage() {
       const formData = new FormData();
       formData.append('report', reportFile);
       if (reportName.trim()) formData.append('report_name', reportName.trim());
-      await fetchWithAuth('/api/v1/reports/upload', { method: 'POST', body: formData });
+      const uploadResult = await fetchWithAuth('/api/v1/reports/upload', { method: 'POST', body: formData });
       setReportFile(null);
       setReportName('');
       if (reportInputRef.current) reportInputRef.current.value = '';
-      setMessage('Report uploaded successfully. Analyze it to extract metrics.');
+      if (uploadResult?.reportId) {
+        await fetchWithAuth(`/api/v1/reports/analyze/${uploadResult.reportId}`, { method: 'POST' });
+      }
+      setMessage('Report uploaded and analyzed successfully.');
       await fetchDashboard();
     } catch (err) {
       setError(err.message || 'Failed to upload report.');
@@ -265,10 +268,13 @@ export default function DashboardPage() {
       setMessage('Uploading prescription...');
       const formData = new FormData();
       formData.append('prescription', prescriptionFile);
-      await fetchWithAuth('/api/v1/prescriptions/upload', { method: 'POST', body: formData });
+      const uploadResult = await fetchWithAuth('/api/v1/prescriptions/upload', { method: 'POST', body: formData });
       setPrescriptionFile(null);
       if (prescriptionInputRef.current) prescriptionInputRef.current.value = '';
-      setMessage('Prescription uploaded. Explain it to extract medicines.');
+      if (uploadResult?.prescriptionId) {
+        await fetchWithAuth(`/api/v1/prescriptions/explain/${uploadResult.prescriptionId}`, { method: 'POST' });
+      }
+      setMessage('Prescription uploaded and explained successfully.');
       await fetchDashboard();
     } catch (err) {
       setError(err.message || 'Failed to upload prescription.');

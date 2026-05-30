@@ -31,6 +31,8 @@ export default function VoiceAssistantClient() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedAudioFile, setSelectedAudioFile] = useState(null);
+  const [contextMode, setContextMode] = useState('personal');
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -91,6 +93,8 @@ export default function VoiceAssistantClient() {
     setTranscription('');
     setAudioUrl(null);
     setDuration(0);
+    setSelectedAudioFile(null);
+    setContextMode('personal');
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -144,20 +148,25 @@ export default function VoiceAssistantClient() {
   };
 
   const handleSend = async () => {
-    if (chunksRef.current.length === 0) {
+    if (!selectedAudioFile && chunksRef.current.length === 0) {
       toast.warning('Record audio before sending.');
       return;
     }
     setIsProcessing(true);
     try {
-      const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
       const formData = new FormData();
-      formData.append('audio', audioBlob, 'voice.webm');
+      if (selectedAudioFile) {
+        formData.append('audio', selectedAudioFile, selectedAudioFile.name);
+      } else {
+        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        formData.append('audio', audioBlob, 'voice.webm');
+      }
       if (reportId) formData.append('report_id', reportId);
 
       const data = await fetchWithAuth('/api/v1/voice', { method: 'POST', body: formData });
       setTranscription(data.transcription || '');
       setAnswer(data.answer || '');
+      setContextMode(data.contextMode || ((data.sources || []).length === 0 ? 'general' : 'personal'));
       if (data.audio) {
         const audioBytes = Uint8Array.from(data.audio, (c) => c.charCodeAt(0));
         const blob = new Blob([audioBytes], { type: data.audioMime || 'audio/mpeg' });
@@ -219,6 +228,25 @@ export default function VoiceAssistantClient() {
         <div className="mx-auto flex w-full max-w-3xl flex-1 flex-col gap-6 px-4 py-8 sm:px-6">
           {/* Recording area */}
           <div className="rounded-3xl border border-white/70 bg-white/80 p-6 shadow-[0_25px_60px_rgba(15,23,42,0.08)]">
+            <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <div>
+                <p className="text-sm font-semibold text-slate-800">Upload a voice note</p>
+                <p className="text-xs text-slate-500">Use a microphone recording or choose an audio file.</p>
+              </div>
+              <label className="inline-flex cursor-pointer items-center rounded-full border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-50">
+                Choose file
+                <input
+                  type="file"
+                  accept="audio/*"
+                  className="hidden"
+                  onChange={(e) => setSelectedAudioFile(e.target.files?.[0] || null)}
+                />
+              </label>
+            </div>
+            {selectedAudioFile && (
+              <p className="mb-4 text-xs text-slate-500">Selected file: {selectedAudioFile.name}</p>
+            )}
+
             {/* Waveform */}
             <div className="rounded-2xl bg-slate-900 p-6 overflow-hidden">
               <canvas
@@ -268,7 +296,7 @@ export default function VoiceAssistantClient() {
               {/* Send */}
               <button
                 onClick={handleSend}
-                disabled={isProcessing || isRecording || chunksRef.current.length === 0}
+                disabled={isProcessing || isRecording || (!selectedAudioFile && chunksRef.current.length === 0)}
                 className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-md transition hover:bg-slate-800 disabled:opacity-30"
                 aria-label="Send recording to AI"
               >
@@ -293,6 +321,11 @@ export default function VoiceAssistantClient() {
 
             {/* AI Answer */}
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+              {contextMode === 'general' && (
+                <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                  General medical info only. No personal document context was found for this answer.
+                </div>
+              )}
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">AI Response</p>
               <p className={`text-sm leading-relaxed ${answer ? 'text-slate-800' : 'text-slate-400 italic'}`}>
                 {answer || 'Waiting for your question...'}

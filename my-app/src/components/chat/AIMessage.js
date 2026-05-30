@@ -1,5 +1,5 @@
 import { SourceBadge } from './SourceBadge';
-import { Shield } from 'lucide-react';
+import { Shield, Info } from 'lucide-react';
 
 function formatTimestamp(value) {
   const date = new Date(value);
@@ -7,7 +7,7 @@ function formatTimestamp(value) {
   return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
 }
 
-export function AIMessage({ content, createdAt, sources = [] }) {
+export function AIMessage({ content, createdAt, sources = [], contextMode = 'personal' }) {
   return (
     <div className="flex justify-start animate-fade-in-up">
       <div className="flex gap-3 max-w-[80%]">
@@ -20,6 +20,12 @@ export function AIMessage({ content, createdAt, sources = [] }) {
 
         {/* Message bubble */}
         <div className="rounded-2xl rounded-tl-sm border border-slate-200 bg-white px-5 py-3.5 text-sm text-slate-800 shadow-sm">
+          {contextMode === 'general' && (
+            <div className="mb-3 flex items-start gap-2 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>General medical info only. No personal document context was found for this answer.</span>
+            </div>
+          )}
           <p className="whitespace-pre-wrap leading-relaxed">{content}</p>
 
           {/* Source badges */}

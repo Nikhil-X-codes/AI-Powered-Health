@@ -1,87 +1,72 @@
-import { NextResponse } from 'next/server';
 import { requireAuth } from '@/lib/api-auth';
+import { getForwardAuthHeaders, proxyFormData } from '@/lib/backend/proxy';
+import { prisma } from '@/lib/prisma';
 
-const FASTAPI_BASE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+export async function POST(req) {
+  const { isValid, user } = requireAuth(req);
+  if (!isValid) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), { status: 401, headers: { 'Content-Type': 'application/json' } });
+  }
 
-async function fetchWithTimeout(url, options = {}, timeoutMs = 60_000) {
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const formData = await req.formData();
+  const audio = formData.get('audio') || formData.get('audio_file');
+  const reportId = formData.get('report_id');
 
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal,
+  const forwardData = new FormData();
+  if (audio) forwardData.append('audio_file', audio, 'voice.webm');
+  forwardData.append('user_id', String(user.userId));
+  if (reportId) forwardData.append('report_id', reportId);
+
+  if (reportId) {
+    const report = await prisma.reports.findUnique({
+      where: { id: String(reportId) },
+      select: { user_id: true },
     });
+
+    if (!report) {
+      return new Response(JSON.stringify({ error: 'Report not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (String(report.user_id) !== String(user.userId)) {
+      return new Response(JSON.stringify({ error: 'Forbidden - report belongs to another user' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
+
+  const authHeaders = getForwardAuthHeaders(req);
+  const proxyReq = new Request(req.url, {
+    method: 'POST',
+    headers: authHeaders || undefined,
+    body: forwardData,
+  });
+
+  const response = await proxyFormData(proxyReq, '/voice');
+  const contentType = response.headers.get('content-type') || '';
+
+  if (!contentType.includes('application/json')) {
     return response;
-  } finally {
-    clearTimeout(timeout);
   }
-}
 
-export async function POST(request) {
-  try {
-    const { isValid, user } = requireAuth(request);
+  const data = await response.json();
+  const transcription = String(data?.transcription || '').trim();
 
-    if (!isValid) {
-      return NextResponse.json(
-        { error: 'Unauthorized - User ID not found' },
-        { status: 401 }
-      );
-    }
-
-    const formData = await request.formData();
-    const audio = formData.get('audio');
-    const reportId = formData.get('report_id');
-
-    if (!audio) {
-      return NextResponse.json(
-        { error: 'Audio file is required' },
-        { status: 400 }
-      );
-    }
-
-    const forwardData = new FormData();
-    forwardData.append('audio_file', audio, 'voice.webm');
-    forwardData.append('user_id', user.userId);
-    if (reportId) {
-      forwardData.append('report_id', reportId);
-    }
-
-    const response = await fetchWithTimeout(
-      `${FASTAPI_BASE_URL}/voice`,
-      {
-        method: 'POST',
-        body: forwardData,
-      },
-      90_000
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('FastAPI voice error:', errorText);
-      return NextResponse.json(
-        { error: 'Failed to process voice request' },
-        { status: 500 }
-      );
-    }
-
-    const data = await response.json();
-    return NextResponse.json(
-      {
-        success: true,
-        transcription: data.transcription,
-        answer: data.answer,
-        audio: data.audio,
-        audioMime: data.audio_mime,
-        sources: data.sources || [],
-      },
-      { status: 200 }
-    );
-  } catch (error) {
-    console.error('Voice endpoint error:', error);
-    return NextResponse.json(
-      { error: 'Failed to process voice request' },
-      { status: 500 }
-    );
+  if (!transcription) {
+    return new Response(JSON.stringify({ error: 'Voice transcription is empty. Please speak louder or rephrase your question.' }), {
+      status: 422,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
+
+  return new Response(JSON.stringify({
+    ...data,
+    contextMode: Array.isArray(data?.sources) && data.sources.length === 0 ? 'general' : 'personal',
+  }), {
+    status: response.status,
+    headers: { 'Content-Type': 'application/json' },
+  });
 }
