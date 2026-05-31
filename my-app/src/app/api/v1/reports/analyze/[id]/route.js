@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/api-auth';
-
-const FASTAPI_BASE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+import { getFastApiBaseUrl } from '@/lib/fastapi';
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 45_000) {
   const controller = new AbortController();
@@ -21,7 +20,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 45_000) {
 
 export async function POST(request, { params }) {
   try {
-    const { id: reportId } = params;
+    const { id: reportId } = await params;
     const { isValid, user } = requireAuth(request);
 
     if (!isValid) {
@@ -52,10 +51,15 @@ export async function POST(request, { params }) {
     }
 
     console.log(`Analyzing report ${reportId} from ${report.file_url}`);
+    const fastApiBaseUrl = getFastApiBaseUrl();
+    console.log('[Analyze] Step 1: Sending report to OCR from URL:', {
+      report_id: reportId,
+      file_url: report.file_url,
+    });
 
     // Step 1: Call FastAPI to extract text from Cloudinary URL
     const ocrResponse = await fetchWithTimeout(
-      `${FASTAPI_BASE_URL}/ocr/from-url`,
+      `${fastApiBaseUrl}/ocr/from-url`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,11 +82,11 @@ export async function POST(request, { params }) {
     const ocrData = await ocrResponse.json();
     const extractedText = ocrData.text;
 
-    console.log(`Extracted ${extractedText.length} characters from report`);
+  console.log('[Analyze] Step 2: OCR extracted text length:', extractedText.length);
 
     // Step 2: Call FastAPI to analyze metrics from OCR text
     const analysisResponse = await fetchWithTimeout(
-      `${FASTAPI_BASE_URL}/analyze/report`,
+      `${fastApiBaseUrl}/analyze/report`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -105,7 +109,7 @@ export async function POST(request, { params }) {
     const analysisData = await analysisResponse.json();
     const { metrics, overall_summary } = analysisData;
 
-    console.log(`Extracted ${metrics.length} metrics from analysis`);
+    console.log('[Analyze] Step 3: Metrics extracted from analysis:', metrics.length);
 
     // Step 3: Bulk insert health metrics into database
     if (metrics && metrics.length > 0) {
@@ -162,13 +166,25 @@ export async function POST(request, { params }) {
         .filter(Boolean)
         .join('\n\n');
 
+      console.log('[Analyze] Step 4: Sending text to /embed/store with report_id:', reportId);
+
       await fetchWithTimeout(
-        `${FASTAPI_BASE_URL}/embed`,
+        `${fastApiBaseUrl}/embed/store`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            texts: [reportTextToEmbed],
+            documents: [
+              {
+                text: reportTextToEmbed,
+                metadata: {
+                  source: 'report',
+                  user_id: userId,
+                  report_id: reportId,
+                },
+                id: reportId,
+              },
+            ],
             source: 'report',
             user_id: userId,
             report_id: reportId,
@@ -176,6 +192,8 @@ export async function POST(request, { params }) {
         },
         60_000
       );
+
+      console.log('[Analyze] Step 5: Embed/store request completed');
     } catch (embedError) {
       console.warn('RAG embed failed for report:', embedError.message);
     }

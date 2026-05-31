@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/api-auth';
-
-const FASTAPI_BASE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+import { getFastApiBaseUrl } from '@/lib/fastapi';
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 45_000) {
   const controller = new AbortController();
@@ -90,6 +89,7 @@ export async function POST(request) {
 
     const body = await request.json();
     const question = body?.message;
+    const fastApiBaseUrl = getFastApiBaseUrl();
 
     if (!question || !question.trim()) {
       return NextResponse.json(
@@ -99,7 +99,7 @@ export async function POST(request) {
     }
 
     const ragResponse = await fetchWithTimeout(
-      `${FASTAPI_BASE_URL}/chat/rag`,
+      `${fastApiBaseUrl}/chat/rag`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

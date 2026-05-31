@@ -1,3 +1,5 @@
+import { requireAuth } from '@/lib/api-auth';
+
 const DEFAULT_FASTAPI_URL = 'http://127.0.0.1:8000';
 
 function getFastApiBaseUrl() {
@@ -7,6 +9,14 @@ function getFastApiBaseUrl() {
 }
 
 export async function POST(req) {
+  const { isValid } = requireAuth(req);
+  if (!isValid) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
+
   const body = await req.json();
   const question = body?.question;
 

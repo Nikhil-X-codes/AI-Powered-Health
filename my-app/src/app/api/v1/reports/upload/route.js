@@ -16,6 +16,8 @@ export async function POST(request) {
     }
     const userId = user.userId;
 
+    console.log('[Upload] Step 1: Received file for user:', userId);
+
     // Parse form data (support both 'report' and 'file' field names)
     const { file, fields } = await parseFormData(request, ['report', 'file']);
 
@@ -60,6 +62,8 @@ export async function POST(request) {
         report_name: fields.report_name || fields.reportName || file.originalname,
       },
     });
+
+    console.log('[Upload] Step 2: Report saved in Neon DB with report_id:', report.id);
 
     return NextResponse.json(
       {

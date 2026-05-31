@@ -4,28 +4,47 @@ import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
 
+async function readJsonResponse(response) {
+  const rawBody = await response.text();
+
+  if (!rawBody.trim()) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(rawBody);
+  } catch {
+    return { rawBody };
+  }
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [hydrated, setHydrated] = useState(false);
   const [error, setError] = useState(null);
 
-  // Initialize from localStorage
   useEffect(() => {
-    const savedToken = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
+    const timer = window.setTimeout(() => {
+      const savedToken = localStorage.getItem('token');
+      const savedUser = localStorage.getItem('user');
 
-    if (savedToken && savedUser) {
-      try {
-        setToken(savedToken);
-        setUser(JSON.parse(savedUser));
-      } catch (err) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+      if (savedToken && savedUser) {
+        try {
+          setToken(savedToken);
+          setUser(JSON.parse(savedUser));
+        } catch {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+        }
       }
-    }
 
-    setLoading(false);
+      setLoading(false);
+      setHydrated(true);
+    }, 0);
+
+    return () => window.clearTimeout(timer);
   }, []);
 
   const login = async (email, password) => {
@@ -42,11 +61,15 @@ export function AuthProvider({ children }) {
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse(response);
         throw new Error(data.error || 'Login failed');
       }
 
-      const data = await response.json();
+      const data = await readJsonResponse(response);
+
+      if (!data.token || !data.user) {
+        throw new Error('Login succeeded but the server returned an incomplete response.');
+      }
 
       // Store token and user in localStorage
       localStorage.setItem('token', data.token);
@@ -78,18 +101,17 @@ export function AuthProvider({ children }) {
       });
 
       if (!response.ok) {
-        const data = await response.json();
+        const data = await readJsonResponse(response);
         throw new Error(data.error || 'Registration failed');
       }
 
-      const data = await response.json();
+      const data = await readJsonResponse(response);
 
-      // Store token and user in localStorage
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('user', JSON.stringify(data.user));
-
-      setToken(data.token);
-      setUser(data.user);
+      // Keep signup separate from login so the user signs in explicitly.
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      setToken(null);
+      setUser(null);
 
       return data;
     } catch (err) {
@@ -127,6 +149,7 @@ export function AuthProvider({ children }) {
         user,
         token,
         loading,
+        hydrated,
         error,
         isAuthenticated,
         login,

@@ -170,7 +170,7 @@ export default function ReportDetailPage({ params }) {
           <Button icon={ScanSearch} loading={isAnalyzing} onClick={handleAnalyze} aria-label="Run AI analysis on this report">
             Analyze Report
           </Button>
-          <Button variant="secondary" icon={MessagesSquare} onClick={() => router.push('/chat')}>
+          <Button variant="secondary" icon={MessagesSquare} onClick={() => router.push(`/chat?report_id=${id}`)}>
             Ask AI about this
           </Button>
         </div>
@@ -182,7 +182,7 @@ export default function ReportDetailPage({ params }) {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold text-slate-900">Health Metrics ({metrics.length})</h2>
             {isAnalyzed && (
-              <Button variant="secondary" size="sm" icon={MessagesSquare} onClick={() => router.push('/chat')}>
+              <Button variant="secondary" size="sm" icon={MessagesSquare} onClick={() => router.push(`/chat?report_id=${id}`)}>
                 Ask AI
               </Button>
             )}

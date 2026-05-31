@@ -78,7 +78,7 @@ export default function SignupPage() {
 
     try {
       await register(formData.email, formData.password, formData.name);
-      router.push('/dashboard');
+      router.replace('/auth/login');
     } catch (err) {
       setError(err.message || 'Registration failed');
       triggerShake();

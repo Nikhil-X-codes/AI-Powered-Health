@@ -18,9 +18,9 @@ const FEATURES = [
 
 export default function AuthLayout({ children, heading, subheading }) {
   return (
-    <div className="flex min-h-screen">
+    <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-50 to-white lg:flex-row">
       {/* ── Left Panel — Branding ────────────────────────────── */}
-      <div className="relative hidden lg:flex lg:w-[48%] flex-col justify-between overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 p-10 text-white">
+      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 p-6 text-white sm:p-8 lg:flex lg:p-10">
         {/* Animated background orbs */}
         <div className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-emerald-500/20 blur-3xl animate-float" />
         <div className="pointer-events-none absolute right-[-60px] top-[40%] h-72 w-72 rounded-full bg-teal-400/15 blur-3xl animate-float-delayed" />

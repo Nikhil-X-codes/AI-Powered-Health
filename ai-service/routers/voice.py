@@ -98,7 +98,8 @@ Keep the response concise and clear."""
 async def voice_rag_chat(
     audio_file: UploadFile = File(...),
     user_id: str = Form(...),
-    report_id: str = Form(None)
+    report_id: str = Form(None),
+    prescription_id: str = Form(None)
 ):
     """
     Transcribe audio, run RAG chat, and return TTS audio.
@@ -118,6 +119,8 @@ async def voice_rag_chat(
         where_filter = {"user_id": user_id}
         if report_id:
             where_filter = {"$and": [{"user_id": user_id}, {"report_id": report_id}]}
+        if prescription_id:
+            where_filter = {"$and": [{"user_id": user_id}, {"prescription_id": prescription_id}]}
 
         results = search(
             query_embeddings=[query_embedding],

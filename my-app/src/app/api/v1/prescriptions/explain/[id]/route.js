@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/api-auth';
-
-const FASTAPI_BASE_URL = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+import { getFastApiBaseUrl } from '@/lib/fastapi';
 
 async function fetchWithTimeout(url, options = {}, timeoutMs = 45_000) {
   const controller = new AbortController();
@@ -21,7 +20,7 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 45_000) {
 
 export async function POST(request, { params }) {
   try {
-    const { id: prescriptionId } = params;
+    const { id: prescriptionId } = await params;
     const { isValid, user } = requireAuth(request);
 
     if (!isValid) {
@@ -52,10 +51,11 @@ export async function POST(request, { params }) {
     }
 
     console.log(`Explaining prescription ${prescriptionId} from ${prescription.file_url}`);
+    const fastApiBaseUrl = getFastApiBaseUrl();
 
     // Step 1: Call FastAPI to extract text from Cloudinary URL
     const ocrResponse = await fetchWithTimeout(
-      `${FASTAPI_BASE_URL}/ocr/from-url`,
+      `${fastApiBaseUrl}/ocr/from-url`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -82,7 +82,7 @@ export async function POST(request, { params }) {
 
     // Step 2: Call FastAPI to explain prescription medicines
     const explanationResponse = await fetchWithTimeout(
-      `${FASTAPI_BASE_URL}/prescriptions/explain`,
+      `${fastApiBaseUrl}/prescriptions/explain`,
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -170,7 +170,7 @@ export async function POST(request, { params }) {
         .join('\n\n');
 
       await fetchWithTimeout(
-        `${FASTAPI_BASE_URL}/embed`,
+        `${fastApiBaseUrl}/embed`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },

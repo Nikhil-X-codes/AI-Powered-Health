@@ -32,7 +32,7 @@ export default function VoiceAssistantClient() {
   const [duration, setDuration] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [selectedAudioFile, setSelectedAudioFile] = useState(null);
-  const [contextMode, setContextMode] = useState('personal');
+  const [recordedAudioFile, setRecordedAudioFile] = useState(null);
 
   const mediaRecorderRef = useRef(null);
   const chunksRef = useRef([]);
@@ -47,8 +47,9 @@ export default function VoiceAssistantClient() {
     return () => {
       if (animationRef.current) cancelAnimationFrame(animationRef.current);
       if (timerRef.current) clearInterval(timerRef.current);
+      if (audioUrl) URL.revokeObjectURL(audioUrl);
     };
-  }, []);
+  }, [audioUrl]);
 
   const drawWaveform = () => {
     const canvas = canvasRef.current;
@@ -94,11 +95,18 @@ export default function VoiceAssistantClient() {
     setAudioUrl(null);
     setDuration(0);
     setSelectedAudioFile(null);
-    setContextMode('personal');
+    setRecordedAudioFile(null);
 
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mediaRecorder = new MediaRecorder(stream);
+      const preferredMimeType = [
+        'audio/webm;codecs=opus',
+        'audio/webm',
+        'audio/mp4',
+      ].find((mimeType) => MediaRecorder.isTypeSupported(mimeType));
+      const mediaRecorder = preferredMimeType
+        ? new MediaRecorder(stream, { mimeType: preferredMimeType })
+        : new MediaRecorder(stream);
       mediaRecorderRef.current = mediaRecorder;
       chunksRef.current = [];
 
@@ -116,9 +124,17 @@ export default function VoiceAssistantClient() {
       };
       mediaRecorder.onstop = () => {
         stream.getTracks().forEach((track) => track.stop());
+        const mimeType = mediaRecorder.mimeType || 'audio/webm';
+        const extension = mimeType.includes('mp4') ? 'm4a' : 'webm';
+        const recordedBlob = new Blob(chunksRef.current, { type: mimeType });
+        if (recordedBlob.size > 0) {
+          setRecordedAudioFile(
+            new File([recordedBlob], `voice-recording.${extension}`, { type: mimeType })
+          );
+        }
       };
 
-      mediaRecorder.start();
+      mediaRecorder.start(1000);
       setIsRecording(true);
 
       // Timer
@@ -148,25 +164,20 @@ export default function VoiceAssistantClient() {
   };
 
   const handleSend = async () => {
-    if (!selectedAudioFile && chunksRef.current.length === 0) {
+    const audioSource = selectedAudioFile || recordedAudioFile;
+    if (!audioSource) {
       toast.warning('Record audio before sending.');
       return;
     }
     setIsProcessing(true);
     try {
       const formData = new FormData();
-      if (selectedAudioFile) {
-        formData.append('audio', selectedAudioFile, selectedAudioFile.name);
-      } else {
-        const audioBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        formData.append('audio', audioBlob, 'voice.webm');
-      }
+      formData.append('audio', audioSource, audioSource.name);
       if (reportId) formData.append('report_id', reportId);
 
       const data = await fetchWithAuth('/api/v1/voice', { method: 'POST', body: formData });
       setTranscription(data.transcription || '');
       setAnswer(data.answer || '');
-      setContextMode(data.contextMode || ((data.sources || []).length === 0 ? 'general' : 'personal'));
       if (data.audio) {
         const audioBytes = Uint8Array.from(data.audio, (c) => c.charCodeAt(0));
         const blob = new Blob([audioBytes], { type: data.audioMime || 'audio/mpeg' });
@@ -179,6 +190,8 @@ export default function VoiceAssistantClient() {
       setIsProcessing(false);
     }
   };
+
+  const canSendRecording = !isProcessing && !isRecording && Boolean(selectedAudioFile || recordedAudioFile);
 
   const togglePlayback = () => {
     if (!audioRef.current) return;
@@ -215,7 +228,7 @@ export default function VoiceAssistantClient() {
               </div>
             </div>
             <button
-              onClick={() => router.push('/chat')}
+              onClick={() => router.push(reportId ? `/chat?report_id=${reportId}` : '/chat')}
               className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 transition hover:bg-slate-50"
               aria-label="Switch to text chat"
             >
@@ -239,12 +252,17 @@ export default function VoiceAssistantClient() {
                   type="file"
                   accept="audio/*"
                   className="hidden"
-                  onChange={(e) => setSelectedAudioFile(e.target.files?.[0] || null)}
+                  onChange={(e) => {
+                    setSelectedAudioFile(e.target.files?.[0] || null);
+                    setRecordedAudioFile(null);
+                  }}
                 />
               </label>
             </div>
-            {selectedAudioFile && (
-              <p className="mb-4 text-xs text-slate-500">Selected file: {selectedAudioFile.name}</p>
+            {(selectedAudioFile || recordedAudioFile) && (
+              <p className="mb-4 text-xs text-slate-500">
+                Selected file: {(selectedAudioFile || recordedAudioFile).name}
+              </p>
             )}
 
             {/* Waveform */}
@@ -296,7 +314,7 @@ export default function VoiceAssistantClient() {
               {/* Send */}
               <button
                 onClick={handleSend}
-                disabled={isProcessing || isRecording || (!selectedAudioFile && chunksRef.current.length === 0)}
+                disabled={!canSendRecording}
                 className="flex h-12 w-12 items-center justify-center rounded-full bg-slate-900 text-white shadow-md transition hover:bg-slate-800 disabled:opacity-30"
                 aria-label="Send recording to AI"
               >
@@ -321,11 +339,6 @@ export default function VoiceAssistantClient() {
 
             {/* AI Answer */}
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              {contextMode === 'general' && (
-                <div className="mb-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                  General medical info only. No personal document context was found for this answer.
-                </div>
-              )}
               <p className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-2">AI Response</p>
               <p className={`text-sm leading-relaxed ${answer ? 'text-slate-800' : 'text-slate-400 italic'}`}>
                 {answer || 'Waiting for your question...'}

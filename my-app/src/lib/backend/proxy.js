@@ -1,16 +1,5 @@
 import { getAuthenticatedUser, getRequestToken } from '@/lib/backend/auth';
-
-function getFastApiBaseUrl() {
-  const url = process.env.FASTAPI_URL || process.env.AI_SERVICE_URL;
-  
-  if (!url) {
-    throw new Error(
-      'FASTAPI_URL or AI_SERVICE_URL must be set in environment variables'
-    );
-  }
-  
-  return url.replace('://localhost', '://127.0.0.1').replace(/\/$/, '');
-}
+import { getFastApiBaseUrl } from '@/lib/fastapi';
 
 function upstreamUnavailableResponse(path, error) {
   return new Response(

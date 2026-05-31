@@ -72,10 +72,10 @@ User Question:
 {question}
 
 Instructions:
-- Base your answer on the provided knowledge base
-- If the answer is not in the knowledge base, say "I don't have information about this"
-- Provide accurate, helpful medical information
-- Cite which knowledge base reference you used
+- Use only the provided context as your source of truth
+- If the context does not contain the answer, say exactly: "I don't see information about that in your uploaded records. Please upload the relevant prescription or report."
+- Do not rely on general medical knowledge unless the context explicitly supports it
+- If the context is relevant, answer in a concise patient-friendly way and cite the record details you used
 
 Answer:"""
 

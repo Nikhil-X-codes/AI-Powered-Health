@@ -18,61 +18,86 @@ function unauthorizedResponse() {
 }
 
 export async function POST(req) {
-  const user = getAuthenticatedUser(req);
-  if (!user) {
-    return unauthorizedResponse();
-  }
+  try {
+    const body = await req.json();
+    console.log('[Next.js RAG] Raw body from frontend:', JSON.stringify(body, null, 2));
 
-  const body = await req.json();
-  const question = String(body?.question || body?.message || body?.prompt || '').trim();
+    const user = getAuthenticatedUser(req);
+    if (!user) {
+      return unauthorizedResponse();
+    }
 
-  if (!question) {
-    return new Response(JSON.stringify({ error: 'Question is required' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+    const question = String(body?.question || body?.message || body?.prompt || '').trim();
+    if (!question) {
+      return new Response(JSON.stringify({ error: 'Question is required' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
-  if (body?.user_id && String(body.user_id) !== String(user.userId)) {
-    return new Response(JSON.stringify({ error: 'Forbidden - user_id does not match the authenticated user' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+    if (body?.user_id && String(body.user_id) !== String(user.userId)) {
+      return new Response(JSON.stringify({ error: 'Forbidden - user_id does not match the authenticated user' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
-  const token = getRequestToken(req);
-  const upstream = await fetch(`${getFastApiBaseUrl()}/chat/rag`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    },
-    body: JSON.stringify({
+    const reportId = body?.report_id || body?.prescription_id || body?.document_id || null;
+
+    if (!reportId) {
+      console.error('[Next.js RAG] Missing report_id. Body keys:', Object.keys(body || {}));
+      return new Response(JSON.stringify({ error: 'Please select a report or prescription first' }), {
+        status: 400,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    const payload = {
       question,
       user_id: String(user.userId),
-      report_id: body?.report_id || null,
-      top_k: body?.top_k || 5,
-    }),
-  });
+      report_id: reportId,
+      top_k: body?.top_k || 4,
+      temperature: body?.temperature || 0.2,
+      max_tokens: body?.max_tokens || 800,
+    };
 
-  const contentType = upstream.headers.get('content-type') || 'application/json';
+    console.log('[Next.js RAG] Forwarding to FastAPI:', JSON.stringify(payload, null, 2));
 
-  if (!contentType.includes('application/json')) {
-    const text = await upstream.text();
-    return new Response(text, {
+    const token = getRequestToken(req);
+    const upstream = await fetch(`${getFastApiBaseUrl()}/chat/rag`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+      body: JSON.stringify(payload),
+    });
+
+    const contentType = upstream.headers.get('content-type') || 'application/json';
+
+    if (!contentType.includes('application/json')) {
+      const text = await upstream.text();
+      return new Response(text, {
+        status: upstream.status,
+        headers: { 'Content-Type': contentType },
+      });
+    }
+
+    const data = await upstream.json();
+    const contextMode = Array.isArray(data?.sources) && data.sources.length === 0 ? 'general' : 'personal';
+
+    return new Response(JSON.stringify({
+      ...data,
+      contextMode,
+    }), {
       status: upstream.status,
-      headers: { 'Content-Type': contentType },
+      headers: { 'Content-Type': 'application/json' },
+    });
+  } catch (error) {
+    console.error('[Next.js RAG] Error:', error);
+    return new Response(JSON.stringify({ error: 'Chat failed', detail: String(error) }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
     });
   }
-
-  const data = await upstream.json();
-  const contextMode = Array.isArray(data?.sources) && data.sources.length === 0 ? 'general' : 'personal';
-
-  return new Response(JSON.stringify({
-    ...data,
-    contextMode,
-  }), {
-    status: upstream.status,
-    headers: { 'Content-Type': 'application/json' },
-  });
 }

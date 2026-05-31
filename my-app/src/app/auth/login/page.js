@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { Mail, Lock, Eye, EyeOff, ArrowRight, Loader2 } from 'lucide-react';
 
 export default function LoginPage() {
-  const { login, loading, error: authError } = useAuth();
+  const { login, loading, hydrated, error: authError } = useAuth();
   const router = useRouter();
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -90,17 +90,10 @@ export default function LoginPage() {
 
         {/* Password field */}
         <div>
-          <div className="mb-1.5 flex items-center justify-between">
+          <div className="mb-1.5">
             <label htmlFor="login-password" className="block text-sm font-medium text-slate-700">
               Password
             </label>
-            <Link
-              href="/auth/forgot-password"
-              className="text-xs font-medium text-emerald-600 transition hover:text-emerald-700"
-              id="forgot-password-link"
-            >
-              Forgot password?
-            </Link>
           </div>
           <div className="relative">
             <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2">
@@ -132,7 +125,7 @@ export default function LoginPage() {
         {/* Submit */}
         <button
           type="submit"
-          disabled={loading}
+          disabled={hydrated ? loading : false}
           className="btn-gradient flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-semibold text-white"
           id="login-submit-btn"
         >

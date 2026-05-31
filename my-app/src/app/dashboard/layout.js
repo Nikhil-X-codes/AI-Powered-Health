@@ -9,7 +9,6 @@ import {
   FileText,
   Syringe,
   MessagesSquare,
-  Volume2,
   LogOut,
   Heart,
   Menu,
@@ -25,7 +24,6 @@ const NAV_ITEMS = [
   { href: '/dashboard/reports', label: 'Reports', icon: FileText },
   { href: '/dashboard/prescriptions', label: 'Prescriptions', icon: Syringe },
   { href: '/chat', label: 'AI Chat', icon: MessagesSquare },
-  { href: '/voice', label: 'Voice', icon: Volume2 },
 ];
 
 const MOBILE_NAV_ITEMS = [
@@ -43,7 +41,7 @@ export default function DashboardLayout({ children }) {
 
   const handleLogout = async () => {
     await logout();
-    router.push('/auth/login');
+    router.push('/');
   };
 
   const isActive = (href) => {

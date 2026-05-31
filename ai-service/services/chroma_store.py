@@ -62,12 +62,15 @@ def add_documents(
         ids: List of document IDs (optional)
     """
     collection = get_collection()
+    document_count = len(documents)
+    print(f"[STORE] Storing {document_count} chunk(s) in ChromaDB")
     collection.add(
         documents=documents,
         metadatas=metadatas or [{} for _ in documents],
         ids=ids or [f"doc_{i}" for i in range(len(documents))],
         embeddings=embeddings,
     )
+    print(f"[STORE] Success: {document_count} chunk(s) stored")
 
 
 def search(query_embeddings: list, n_results: int = 5, where: dict = None) -> dict:

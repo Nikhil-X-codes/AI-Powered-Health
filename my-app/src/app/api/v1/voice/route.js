@@ -11,11 +11,13 @@ export async function POST(req) {
   const formData = await req.formData();
   const audio = formData.get('audio') || formData.get('audio_file');
   const reportId = formData.get('report_id');
+  const prescriptionId = formData.get('prescription_id');
 
   const forwardData = new FormData();
   if (audio) forwardData.append('audio_file', audio, 'voice.webm');
   forwardData.append('user_id', String(user.userId));
   if (reportId) forwardData.append('report_id', reportId);
+  if (prescriptionId) forwardData.append('prescription_id', prescriptionId);
 
   if (reportId) {
     const report = await prisma.reports.findUnique({
@@ -25,6 +27,27 @@ export async function POST(req) {
 
     if (!report) {
       return new Response(JSON.stringify({ error: 'Report not found' }), {
+
+  if (prescriptionId) {
+    const prescription = await prisma.prescriptions.findUnique({
+      where: { id: String(prescriptionId) },
+      select: { user_id: true },
+    });
+
+    if (!prescription) {
+      return new Response(JSON.stringify({ error: 'Prescription not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (String(prescription.user_id) !== String(user.userId)) {
+      return new Response(JSON.stringify({ error: 'Forbidden - prescription belongs to another user' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
         status: 404,
         headers: { 'Content-Type': 'application/json' },
       });
