@@ -6,7 +6,7 @@ Endpoints for semantic embeddings and vector operations.
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-from services import embed_text, embed_texts, add_documents
+from services import embed_text, embed_texts, add_documents, delete_by_document
 from utils.text_chunker import chunk_text_with_metadata
 
 router = APIRouter(prefix="/embed", tags=["Embeddings"])
@@ -149,6 +149,9 @@ async def store_documents(request: EmbedStoreRequest):
                     "end_pos": chunk.get("end_pos"),
                     "length": chunk.get("length"),
                 }
+                
+                # Filter out None values to prevent ChromaDB crash
+                chunk_meta = {k: v for k, v in chunk_meta.items() if v is not None}
 
                 all_texts.append(chunk.get("text", ""))
                 all_metadatas.append(chunk_meta)
@@ -231,6 +234,9 @@ async def embed_pipeline(request: EmbedPipelineRequest):
                     "end_pos": chunk.get("end_pos"),
                     "length": chunk.get("length"),
                 }
+                
+                # Filter out None values to prevent ChromaDB crash
+                metadata = {k: v for k, v in metadata.items() if v is not None}
 
                 all_texts.append(chunk.get("text", ""))
                 all_metadatas.append(metadata)
@@ -238,6 +244,10 @@ async def embed_pipeline(request: EmbedPipelineRequest):
 
         if not all_texts:
             raise HTTPException(status_code=400, detail="No valid text provided")
+
+        doc_id = request.report_id or request.prescription_id
+        if doc_id and request.user_id:
+            delete_by_document(request.user_id, doc_id)
 
         embeddings = embed_texts(all_texts)
         add_documents(

@@ -6,7 +6,7 @@ Exports all singleton service loaders.
 # Service initialization functions
 from .groq_client import init_groq_client, get_groq_client
 from .embedder import init_embedder, get_embedder, embed_text, embed_texts
-from .chroma_store import init_chroma, get_collection, add_documents, search
+from .chroma_store import init_chroma, get_collection, add_documents, delete_by_document, search
 from .whisper_engine import init_whisper, get_whisper_model, transcribe, transcribe_stream
 from .tts_engine import synthesize_speech
 from .ocr_engine import (
@@ -31,6 +31,7 @@ __all__ = [
     "init_chroma",
     "get_collection",
     "add_documents",
+    "delete_by_document",
     "search",
     # Whisper
     "init_whisper",

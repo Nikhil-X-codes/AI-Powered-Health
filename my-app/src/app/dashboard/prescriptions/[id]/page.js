@@ -118,8 +118,8 @@ export default function PrescriptionDetailPage({ params }) {
     try {
       setIsExplaining(true);
       await fetchWithAuth(`/api/v1/prescriptions/explain/${id}`, { method: 'POST' });
-      toast.success('Prescription explained successfully');
-      await loadPrescription();
+      toast.success('Prescription explained — opening chat');
+      router.push(`/chat?prescription_id=${id}`);
     } catch (err) {
       toast.error(err.message || 'Explanation failed');
     } finally {
@@ -230,9 +230,13 @@ export default function PrescriptionDetailPage({ params }) {
       )}
 
       {isExplained && (
-        <div className="flex justify-center pt-4">
-          <Button variant="secondary" icon={MessagesSquare} onClick={() => router.push('/chat')}>
-            Ask AI about these medicines
+        <div className="flex flex-wrap justify-center gap-3 pt-4">
+          <Button
+            variant="secondary"
+            icon={MessagesSquare}
+            onClick={() => router.push(`/chat?prescription_id=${id}`)}
+          >
+            Ask AI about this prescription
           </Button>
         </div>
       )}

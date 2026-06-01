@@ -27,6 +27,18 @@ export async function POST(req) {
 
     if (!report) {
       return new Response(JSON.stringify({ error: 'Report not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (String(report.user_id) !== String(user.userId)) {
+      return new Response(JSON.stringify({ error: 'Forbidden - report belongs to another user' }), {
+        status: 403,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
+  }
 
   if (prescriptionId) {
     const prescription = await prisma.prescriptions.findUnique({
@@ -43,18 +55,6 @@ export async function POST(req) {
 
     if (String(prescription.user_id) !== String(user.userId)) {
       return new Response(JSON.stringify({ error: 'Forbidden - prescription belongs to another user' }), {
-        status: 403,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-  }
-        status: 404,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    if (String(report.user_id) !== String(user.userId)) {
-      return new Response(JSON.stringify({ error: 'Forbidden - report belongs to another user' }), {
         status: 403,
         headers: { 'Content-Type': 'application/json' },
       });

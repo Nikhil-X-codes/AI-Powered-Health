@@ -55,7 +55,7 @@ export default function PrescriptionsPage() {
       if (uploadResult?.prescriptionId) {
         await fetchWithAuth(`/api/v1/prescriptions/explain/${uploadResult.prescriptionId}`, { method: 'POST' });
       }
-      toast.success('Prescription uploaded and explained successfully');
+      toast.success('Prescription uploaded and explained — ready for chat');
       setShowUpload(false);
       setUploadFile(null);
       await loadPrescriptions();
@@ -70,7 +70,7 @@ export default function PrescriptionsPage() {
     try {
       setExplainingId(prescriptionId);
       await fetchWithAuth(`/api/v1/prescriptions/explain/${prescriptionId}`, { method: 'POST' });
-      toast.success('Prescription explained successfully');
+      toast.success('Prescription explained — ready for chat');
       await loadPrescriptions();
     } catch (err) {
       toast.error(err.message || 'Explanation failed');

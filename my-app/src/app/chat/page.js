@@ -38,7 +38,9 @@ function formatDateSeparator(dateStr) {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
-export default function ChatPage() {
+import { Suspense } from 'react';
+
+function ChatContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, hydrated } = useAuth();
@@ -145,20 +147,6 @@ export default function ChatPage() {
       setActiveDocumentType('prescription');
       setActivePrescriptionId(prescriptionId);
       setActiveReportId('');
-      return;
-    }
-
-    if (reports.length > 0) {
-      setActiveDocumentType('report');
-      setActiveReportId(reports[0].id);
-      setActivePrescriptionId('');
-      return;
-    }
-
-    if (prescriptions.length > 0) {
-      setActiveDocumentType('prescription');
-      setActivePrescriptionId(prescriptions[0].id);
-      setActiveReportId('');
     }
   }, [activeDocumentType, hydrated, prescriptionId, prescriptions, reportId, reports]);
 
@@ -197,20 +185,17 @@ export default function ChatPage() {
     setIsSending(true);
 
     try {
-      const useRag = Boolean(activeDocumentType && (activeReportId || activePrescriptionId));
+      const documentId = activeDocumentType === 'prescription'
+        ? activePrescriptionId
+        : activeReportId;
+      const useRag = Boolean(activeDocumentType && documentId);
       const endpoint = useRag ? '/api/v1/chat/rag' : '/api/v1/chat/quick';
       const body = useRag
-        ? activeDocumentType === 'prescription'
-          ? {
-              question: messageText,
-              user_id: user?.userId,
-              prescription_id: activePrescriptionId,
-            }
-          : {
-              question: messageText,
-              user_id: user?.userId,
-              report_id: activeReportId,
-            }
+        ? {
+            question: messageText,
+            user_id: user?.userId,
+            report_id: documentId,
+          }
         : { question: messageText };
 
       const data = await fetchWithAuth(endpoint, {
@@ -339,7 +324,7 @@ export default function ChatPage() {
             isEmpty={messages.length === 0}
             emptyMessage={
               hasSelectableDocuments
-                ? 'Pick a report or prescription, then ask about it here'
+                ? 'Ask a general health question, or pick a document below'
                 : 'Upload a report or prescription in the dashboard to start asking questions here'
             }
             quickPrompts={selectedDocument ? QUICK_PROMPTS : []}
@@ -391,7 +376,14 @@ export default function ChatPage() {
                     : ''
               }
               onChange={(e) => {
-                const [type, id] = e.target.value.split(':');
+                const val = e.target.value;
+                if (!val) {
+                  setActiveDocumentType('');
+                  setActiveReportId('');
+                  setActivePrescriptionId('');
+                  return;
+                }
+                const [type, id] = val.split(':');
                 if (type === 'report') {
                   setActiveDocumentType('report');
                   setActiveReportId(id);
@@ -400,20 +392,20 @@ export default function ChatPage() {
                   setActiveDocumentType('prescription');
                   setActivePrescriptionId(id);
                   setActiveReportId('');
-                } else {
-                  setActiveDocumentType('');
-                  setActiveReportId('');
-                  setActivePrescriptionId('');
                 }
               }}
               disabled={isReportsLoading || isPrescriptionsLoading}
               className="mt-3 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 shadow-sm transition focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 disabled:cursor-not-allowed disabled:bg-slate-50"
               aria-label="Select document for chat"
             >
-              <option value="">{(isReportsLoading || isPrescriptionsLoading) ? 'Loading documents...' : '-- Choose a document --'}</option>
+              <option value="">
+                {(isReportsLoading || isPrescriptionsLoading)
+                  ? 'Loading documents...'
+                  : 'General health question (no document)'}
+              </option>
               {reports.map((report) => (
                 <option key={`report-${report.id}`} value={`report:${report.id}`}>
-                  Report: {report.report_name || 'Medical Report'} ({report.id.slice(0, 8)}...)
+                  Report: {report.report_name || 'Medical Report'}
                 </option>
               ))}
               {prescriptions.map((prescription) => (
@@ -452,5 +444,13 @@ export default function ChatPage() {
         />
       </div>
     </ProtectedRoute>
+  );
+}
+
+export default function ChatPage() {
+  return (
+    <Suspense fallback={<div>Loading chat...</div>}>
+      <ChatContent />
+    </Suspense>
   );
 }

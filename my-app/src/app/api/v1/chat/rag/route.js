@@ -20,7 +20,6 @@ function unauthorizedResponse() {
 export async function POST(req) {
   try {
     const body = await req.json();
-    console.log('[Next.js RAG] Raw body from frontend:', JSON.stringify(body, null, 2));
 
     const user = getAuthenticatedUser(req);
     if (!user) {
@@ -45,7 +44,6 @@ export async function POST(req) {
     const reportId = body?.report_id || body?.prescription_id || body?.document_id || null;
 
     if (!reportId) {
-      console.error('[Next.js RAG] Missing report_id. Body keys:', Object.keys(body || {}));
       return new Response(JSON.stringify({ error: 'Please select a report or prescription first' }), {
         status: 400,
         headers: { 'Content-Type': 'application/json' },
@@ -60,8 +58,6 @@ export async function POST(req) {
       temperature: body?.temperature || 0.2,
       max_tokens: body?.max_tokens || 800,
     };
-
-    console.log('[Next.js RAG] Forwarding to FastAPI:', JSON.stringify(payload, null, 2));
 
     const token = getRequestToken(req);
     const upstream = await fetch(`${getFastApiBaseUrl()}/chat/rag`, {

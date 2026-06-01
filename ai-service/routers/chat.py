@@ -3,14 +3,15 @@ Chat Router
 Endpoints for multi-turn conversations with medical context.
 """
 
+import re
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-from services import get_groq_client, get_collection, embed_text, search
+from services import get_groq_client, embed_text, search
 from utils import RAG_MEDICAL_QA_PROMPT
 
 router = APIRouter(prefix="/chat", tags=["Chat"])
-debug_router = APIRouter(tags=["Debug"])
 
 
 class Message(BaseModel):
@@ -45,11 +46,17 @@ def build_where_filter(user_id: Optional[str], report_id: Optional[str], prescri
     if user_id:
         filters.append({"user_id": user_id})
 
-    if report_id:
+    doc_id = report_id or prescription_id
+    if report_id and prescription_id and report_id != prescription_id:
         filters.append({"report_id": report_id})
-
-    if prescription_id:
         filters.append({"prescription_id": prescription_id})
+    elif doc_id:
+        filters.append({
+            "$or": [
+                {"report_id": doc_id},
+                {"prescription_id": doc_id},
+            ]
+        })
 
     if not filters:
         return None
@@ -60,6 +67,49 @@ def build_where_filter(user_id: Optional[str], report_id: Optional[str], prescri
     return {"$and": filters}
 
 
+def is_usable_rag_context(context_lines: List[str]) -> bool:
+    if not context_lines:
+        return False
+
+    combined = "\n".join(context_lines).strip()
+    if len(combined) < 40:
+        return False
+
+    normalized = combined.lower().strip()
+    if normalized == "test text" or (normalized.startswith("test text") and len(combined) < 80):
+        return False
+
+    return True
+
+
+def sanitize_rag_answer(text: str) -> str:
+    """Remove internal citation blocks the model sometimes adds despite instructions."""
+    if not text:
+        return text
+
+    cleaned = text.strip()
+    for marker in (
+        "I used the following record details",
+        "I used the following records",
+        "Based on the following record",
+    ):
+        idx = cleaned.lower().find(marker.lower())
+        if idx != -1:
+            cleaned = cleaned[:idx].strip()
+            break
+
+    lines = []
+    for line in cleaned.split("\n"):
+        stripped = line.strip()
+        if re.search(r"#[0-9a-f-]{36}", stripped, re.I) and re.search(r"chunk\s*\d+", stripped, re.I):
+            continue
+        if re.match(r"^[-•]\s*Prescription:\s*#", stripped, re.I):
+            continue
+        lines.append(line)
+
+    return "\n".join(lines).strip()
+
+
 def build_context_lines(documents: List[str], metadatas: List[dict]) -> List[str]:
     context_lines = []
 
@@ -68,16 +118,14 @@ def build_context_lines(documents: List[str], metadatas: List[dict]) -> List[str
             continue
 
         source_type = meta.get("source") or meta.get("type") or meta.get("source_type") or "document"
-        source_id = meta.get("report_id") or meta.get("prescription_id") or meta.get("source_id")
-        chunk_num = meta.get("chunk_num") or meta.get("chunk_index")
+        if source_type == "prescription":
+            label = "Prescription excerpt"
+        elif source_type == "report":
+            label = "Medical report excerpt"
+        else:
+            label = "Record excerpt"
 
-        label = source_type
-        if source_id:
-            label += f" #{source_id}"
-        if chunk_num is not None:
-            label += f" chunk {chunk_num}"
-
-        context_lines.append(f"[{label}] {doc}")
+        context_lines.append(f"{label}:\n{doc}")
 
     return context_lines
 
@@ -172,8 +220,9 @@ async def rag_question_answering(request: RAGRequest):
         context_lines = build_context_lines(documents, metadatas)
         knowledge_context = "\n\n".join(context_lines)
 
+        client = get_groq_client()
+
         if not context_lines:
-            client = get_groq_client()
             return {
                 "question": request.question,
                 "answer": "I don't see information about that in your uploaded records. Please upload the relevant prescription or report.",
@@ -186,12 +235,33 @@ async def rag_question_answering(request: RAGRequest):
                 "model": client.model_name,
             }
 
+        if not is_usable_rag_context(context_lines):
+            return {
+                "question": request.question,
+                "answer": (
+                    "This document is not indexed with real prescription text yet "
+                    "(only placeholder data was found in search). "
+                    "Open Dashboard → Prescriptions → select this prescription → click **Explain** "
+                    "to scan the image and rebuild the chat index."
+                ),
+                "sources": [
+                    {"text": doc, "metadata": meta}
+                    for doc, meta in zip(documents, metadatas)
+                ],
+                "retrieval": {
+                    "matched_chunks": len(context_lines),
+                    "distances": distances,
+                    "where_filter": where_filter,
+                    "index_status": "placeholder",
+                },
+                "model": client.model_name,
+            }
+
         prompt = RAG_MEDICAL_QA_PROMPT.format(
             knowledge_context=knowledge_context,
             question=request.question,
         )
 
-        client = get_groq_client()
         from langchain_core.messages import HumanMessage
 
         response = client.invoke(
@@ -202,7 +272,7 @@ async def rag_question_answering(request: RAGRequest):
 
         return {
             "question": request.question,
-            "answer": response.content,
+            "answer": sanitize_rag_answer(response.content),
             "sources": [
                 {
                     "text": doc,
@@ -216,49 +286,6 @@ async def rag_question_answering(request: RAGRequest):
                 "where_filter": where_filter,
             },
             "model": client.model_name,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-
-@router.post("")
-async def rag_chat(request: RAGRequest):
-    """
-    Primary RAG chat endpoint (alias for /chat/rag).
-    """
-    return await rag_question_answering(request)
-
-
-@debug_router.get("/debug/retrieval")
-async def debug_retrieval(user_id: str, report_id: Optional[str] = None, query: str = ""):
-    """
-    Inspect Chroma retrieval for a given user/report and query.
-    """
-    if not query.strip():
-        raise HTTPException(status_code=400, detail="query is required")
-
-    try:
-        collection = get_collection()
-        user_docs = collection.get(
-            where={"user_id": user_id},
-            limit=10,
-            include=["documents", "metadatas"],
-        )
-
-        query_embedding = embed_text(query)
-        where_filter = build_where_filter(user_id, report_id)
-        results = search(
-            query_embeddings=[query_embedding],
-            n_results=4,
-            where=where_filter,
-        )
-
-        return {
-            "total_user_docs": len(user_docs.get("ids", [])),
-            "retrieved_chunks": results.get("documents", [[]])[0] or [],
-            "retrieved_distances": results.get("distances", [[]])[0] or [],
-            "retrieved_metadatas": results.get("metadatas", [[]])[0] or [],
-            "where_filter": where_filter,
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

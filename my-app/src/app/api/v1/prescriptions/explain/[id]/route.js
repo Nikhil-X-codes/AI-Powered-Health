@@ -169,7 +169,7 @@ export async function POST(request, { params }) {
         .filter(Boolean)
         .join('\n\n');
 
-      await fetchWithTimeout(
+      const embedResponse = await fetchWithTimeout(
         `${fastApiBaseUrl}/embed`,
         {
           method: 'POST',
@@ -183,6 +183,16 @@ export async function POST(request, { params }) {
         },
         60_000
       );
+
+      if (!embedResponse.ok) {
+        const embedErrorText = await embedResponse.text();
+        console.error('[Explain] RAG embed failed:', embedErrorText);
+      } else {
+        const embedData = await embedResponse.json();
+        console.log(
+          `[Explain] RAG indexed ${embedData.chunks} chunk(s), ${prescriptionTextToEmbed.length} chars for ${prescriptionId}`
+        );
+      }
     } catch (embedError) {
       console.warn('RAG embed failed for prescription:', embedError.message);
     }

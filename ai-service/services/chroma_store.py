@@ -73,6 +73,30 @@ def add_documents(
     print(f"[STORE] Success: {document_count} chunk(s) stored")
 
 
+def delete_by_document(user_id: str, doc_id: str) -> None:
+    """Remove existing chunks for a report or prescription before re-embedding."""
+    if not user_id or not doc_id:
+        return
+
+    collection = get_collection()
+    where = {
+        "$and": [
+            {"user_id": user_id},
+            {
+                "$or": [
+                    {"report_id": doc_id},
+                    {"prescription_id": doc_id},
+                ]
+            },
+        ]
+    }
+    try:
+        collection.delete(where=where)
+        print(f"[STORE] Cleared existing chunks for document {doc_id}")
+    except Exception as err:
+        print(f"[STORE] Delete skipped (may be empty): {err}")
+
+
 def search(query_embeddings: list, n_results: int = 5, where: dict = None) -> dict:
     """
     Search the collection by embedding vectors.
