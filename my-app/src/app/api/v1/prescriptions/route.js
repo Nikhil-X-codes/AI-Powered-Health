@@ -71,7 +71,6 @@ export async function GET(request) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Error fetching prescriptions:', error);
     return NextResponse.json(
       { error: 'Failed to fetch prescriptions' },
       { status: 500 }

@@ -4,7 +4,7 @@
 
 ## Project Overview
 
-MedExplain AI helps patients, elderly users, and non-medical individuals understand their medical reports and prescriptions without relying on unreliable internet sources. The platform uses advanced OCR, Large Language Models (LLM), and Retrieval-Augmented Generation (RAG) to provide accurate, personalized medical insights.
+MedExplain AI helps patients, elderly users, and non-medical individuals understand their medical reports and prescriptions without relying on unreliable internet sources. The platform uses image preprocessing, confidence-gated OCR, PaddleOCR fallback for handwriting, Large Language Models (LLM), and Retrieval-Augmented Generation (RAG) to provide accurate, personalized medical insights.
 
 ### Core Capabilities
 
@@ -13,6 +13,13 @@ MedExplain AI helps patients, elderly users, and non-medical individuals underst
 - **Health Dashboard** — Visualize health metrics over time, track trends, and flag high/low values.
 - **AI Chat Assistant** — Ask medical questions grounded in your uploaded reports and medical knowledge via RAG.
 - **Voice Assistant** — Speech-to-text input and text-to-speech responses for accessibility.
+
+### OCR Quality Control
+
+- Images are preprocessed before OCR so shadows, blur, and tilt are reduced.
+- Low-confidence OCR is flagged instead of being silently stored as valid text.
+- Handwritten or low-quality prescriptions fall back to PaddleOCR.
+- Only verified text is sent into report analysis, prescription explanation, and RAG.
 
 ### Target Users
 
@@ -148,7 +155,9 @@ POST /api/v1/reports/analyze/:id
     ↓
 Express sends Cloudinary URL to FastAPI /ocr
     ↓
-PaddleOCR extracts raw text
+Preprocessing + EasyOCR confidence check
+    ↓
+PaddleOCR fallback for handwriting or low-confidence scans
     ↓
 Prompt Template + OCR text → Groq Llama3
     ↓

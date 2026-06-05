@@ -16,7 +16,7 @@ export async function POST(request) {
     }
     const userId = user.userId;
 
-    console.log('[Upload] Step 1: Received file for user:', userId);
+
 
     // Parse form data (support both 'report' and 'file' field names)
     const { file, fields } = await parseFormData(request, ['report', 'file']);
@@ -63,7 +63,7 @@ export async function POST(request) {
       },
     });
 
-    console.log('[Upload] Step 2: Report saved in Neon DB with report_id:', report.id);
+
 
     return NextResponse.json(
       {
@@ -76,7 +76,6 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Report upload error:', error);
 
     if (error.message.includes('File type') || error.message.includes('file')) {
       return NextResponse.json(

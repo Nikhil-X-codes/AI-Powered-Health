@@ -70,7 +70,6 @@ export async function POST(request) {
       { status: 201 }
     );
   } catch (error) {
-    console.error('Prescription upload error:', error);
 
     if (error.message.includes('File type') || error.message.includes('file')) {
       return NextResponse.json(

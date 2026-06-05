@@ -3,8 +3,9 @@ Whisper Speech-to-Text Model Singleton
 Loads the faster-whisper model once at startup.
 """
 
+import os
 import faster_whisper
-from config import WHISPER_MODEL, WHISPER_DEVICE
+from config import WHISPER_MODEL, WHISPER_DEVICE, WHISPER_CACHE_DIR
 
 _whisper_model: faster_whisper.WhisperModel = None
 
@@ -14,12 +15,20 @@ def init_whisper() -> faster_whisper.WhisperModel:
     global _whisper_model
     
     if _whisper_model is None:
+        model_kwargs = {
+            "device": WHISPER_DEVICE,
+            "compute_type": "int8" if WHISPER_DEVICE == "cpu" else "float16",
+        }
+        if WHISPER_CACHE_DIR:
+            os.makedirs(WHISPER_CACHE_DIR, exist_ok=True)
+            model_kwargs["download_root"] = WHISPER_CACHE_DIR
+
         _whisper_model = faster_whisper.WhisperModel(
             WHISPER_MODEL,
-            device=WHISPER_DEVICE,
-            compute_type="int8" if WHISPER_DEVICE == "cpu" else "float16"
+            **model_kwargs,
         )
-        print(f"[OK] Whisper model initialized: {WHISPER_MODEL} (device: {WHISPER_DEVICE})")
+        cache_note = f", cache: {WHISPER_CACHE_DIR}" if WHISPER_CACHE_DIR else ""
+        print(f"[OK] Whisper model initialized: {WHISPER_MODEL} (device: {WHISPER_DEVICE}{cache_note})")
     
     return _whisper_model
 

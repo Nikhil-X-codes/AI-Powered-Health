@@ -1,8 +1,3 @@
-"""
-Analysis Router
-Endpoints for comprehensive analysis pipelines (combining multiple services).
-"""
-
 import json
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
@@ -114,11 +109,9 @@ async def analyze_medical_report(request: ReportAnalysisRequest):
                     explanation=metric.get("explanation", "")
                 )
                 metrics.append(m)
-            except Exception as e:
-                # Skip invalid metrics
-                print(f"Skipping invalid metric: {e}")
+            except Exception:
                 continue
-        
+
         return ReportAnalysisResponse(
             metrics=metrics,
             overall_summary=data.get("overall_summary", "Unable to generate summary")

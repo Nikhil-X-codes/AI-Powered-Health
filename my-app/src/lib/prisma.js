@@ -49,10 +49,7 @@ export async function withRetry(operation, maxRetries = 3) {
         throw err;
       }
 
-      console.warn(
-        `[DB Retry] Attempt ${i + 1}/${maxRetries} failed — database may be waking up. Retrying in 2s...`,
-        { code: err.code, message: err.message }
-      );
+      // Retry without logging
       await new Promise((resolve) => setTimeout(resolve, 2000));
     }
   }
@@ -65,9 +62,9 @@ export async function withRetry(operation, maxRetries = 3) {
 async function warmupDatabase() {
   try {
     await prisma.$queryRawUnsafe('SELECT 1');
-    console.log('[DB] Database connection warmed up successfully');
+
   } catch (err) {
-    console.warn('[DB] Database warmup failed (will retry on first query):', err.message);
+    // Database warmup failed, will retry on first query
   }
 }
 

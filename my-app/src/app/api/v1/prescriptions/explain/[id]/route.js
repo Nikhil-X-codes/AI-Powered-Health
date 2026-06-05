@@ -50,35 +50,47 @@ export async function POST(request, { params }) {
       );
     }
 
-    console.log(`Explaining prescription ${prescriptionId} from ${prescription.file_url}`);
-    const fastApiBaseUrl = getFastApiBaseUrl();
-
-    // Step 1: Call FastAPI to extract text from Cloudinary URL
-    const ocrResponse = await fetchWithTimeout(
-      `${fastApiBaseUrl}/ocr/from-url`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          file_url: prescription.file_url,
-          description: 'Prescription image',
-        }),
-      },
-    );
-
-    if (!ocrResponse.ok) {
-      const errorText = await ocrResponse.text();
-      console.error('FastAPI OCR error:', errorText);
-      return NextResponse.json(
-        { error: 'Failed to extract text from prescription' },
-        { status: 500 }
-      );
+    let requestBody = {};
+    try {
+      requestBody = await request.json();
+    } catch {
+      requestBody = {};
     }
 
-    const ocrData = await ocrResponse.json();
-    const extractedText = ocrData.text;
+    const clientReviewedText = String(requestBody.ocr_text || '').trim();
 
-    console.log(`Extracted ${extractedText.length} characters from prescription`);
+
+    const fastApiBaseUrl = getFastApiBaseUrl();
+
+    let extractedText = clientReviewedText;
+
+    // Step 1: Call FastAPI to extract text from Cloudinary URL when the client did not provide reviewed OCR text
+    if (!extractedText) {
+      const ocrResponse = await fetchWithTimeout(
+        `${fastApiBaseUrl}/ocr/from-url`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file_url: prescription.file_url,
+            description: 'Prescription image',
+          }),
+        },
+      );
+
+      if (!ocrResponse.ok) {
+        const errorText = await ocrResponse.text();
+        return NextResponse.json(
+          { error: 'Failed to extract text from prescription' },
+          { status: 500 }
+        );
+      }
+
+      const ocrData = await ocrResponse.json();
+      extractedText = ocrData.text;
+    }
+
+
 
     // Step 2: Call FastAPI to explain prescription medicines
     const explanationResponse = await fetchWithTimeout(
@@ -95,7 +107,6 @@ export async function POST(request, { params }) {
 
     if (!explanationResponse.ok) {
       const errorText = await explanationResponse.text();
-      console.error('FastAPI explanation error:', errorText);
       return NextResponse.json(
         { error: 'Failed to analyze prescription' },
         { status: 500 }
@@ -105,7 +116,7 @@ export async function POST(request, { params }) {
     const explanationData = await explanationResponse.json();
     const { medicines, pharmacy_notes } = explanationData;
 
-    console.log(`Extracted ${medicines.length} medicines from prescription`);
+
 
     // Step 3: Delete old medicines (to avoid duplicates) and insert new ones
     await prisma.medicines.deleteMany({
@@ -131,8 +142,6 @@ export async function POST(request, { params }) {
         where: { prescription_id: prescriptionId },
       });
       savedMedicines.push(...stored);
-
-      console.log(`Inserted ${savedMedicines.length} medicines into database`);
     }
 
     // Step 4: Update prescription with extracted text

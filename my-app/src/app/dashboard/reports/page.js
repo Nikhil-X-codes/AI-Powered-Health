@@ -33,6 +33,9 @@ export default function ReportsPage() {
   const [reportName, setReportName] = useState('');
   const [isUploading, setIsUploading] = useState(false);
   const [analyzingId, setAnalyzingId] = useState(null);
+  const [showReview, setShowReview] = useState(false);
+  const [ocrData, setOcrData] = useState(null);
+  const [editedText, setEditedText] = useState('');
 
   const loadReports = useCallback(async () => {
     try {
@@ -48,21 +51,53 @@ export default function ReportsPage() {
 
   useEffect(() => { loadReports(); }, [loadReports]);
 
+  const resetUploadState = () => {
+    setShowUpload(false);
+    setShowReview(false);
+    setUploadFile(null);
+    setReportName('');
+    setOcrData(null);
+    setEditedText('');
+  };
+
+  const extractOcrPreview = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return fetchWithAuth('/api/v1/ocr/extract', { method: 'POST', body: formData });
+  };
+
+  const saveReportWithText = async (ocrText) => {
+    const formData = new FormData();
+    formData.append('report', uploadFile);
+    if (reportName.trim()) formData.append('report_name', reportName.trim());
+
+    const uploadResult = await fetchWithAuth('/api/v1/reports/upload', { method: 'POST', body: formData });
+
+    if (uploadResult?.reportId) {
+      await fetchWithAuth(`/api/v1/reports/analyze/${uploadResult.reportId}`, {
+        method: 'POST',
+        body: JSON.stringify({ ocr_text: ocrText }),
+      });
+    }
+  };
+
   const handleUpload = async () => {
     if (!uploadFile) { toast.warning('Select a file first'); return; }
     try {
       setIsUploading(true);
-      const formData = new FormData();
-      formData.append('report', uploadFile);
-      if (reportName.trim()) formData.append('report_name', reportName.trim());
-      const uploadResult = await fetchWithAuth('/api/v1/reports/upload', { method: 'POST', body: formData });
-      if (uploadResult?.reportId) {
-        await fetchWithAuth(`/api/v1/reports/analyze/${uploadResult.reportId}`, { method: 'POST' });
+      const ocrResult = await extractOcrPreview(uploadFile);
+
+      if (!ocrResult?.is_reliable) {
+        setOcrData(ocrResult);
+        setEditedText(ocrResult?.text || '');
+        setShowUpload(false);
+        setShowReview(true);
+        return;
       }
+
+      await saveReportWithText(ocrResult?.text || '');
       toast.success('Report uploaded and analyzed successfully');
-      setShowUpload(false);
-      setUploadFile(null);
-      setReportName('');
+      resetUploadState();
       await loadReports();
     } catch (err) {
       toast.error(err.message || 'Upload failed');
@@ -81,6 +116,22 @@ export default function ReportsPage() {
       toast.error(err.message || 'Analysis failed');
     } finally {
       setAnalyzingId(null);
+    }
+  };
+
+  const handleConfirmSave = async () => {
+    if (!uploadFile) return;
+
+    try {
+      setIsUploading(true);
+      await saveReportWithText(editedText.trim() || ocrData?.text || '');
+      toast.success('Report reviewed and saved successfully');
+      resetUploadState();
+      await loadReports();
+    } catch (err) {
+      toast.error(err.message || 'Save failed');
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -200,7 +251,7 @@ export default function ReportsPage() {
       {/* Upload modal */}
       <Modal
         isOpen={showUpload}
-        onClose={() => { setShowUpload(false); setUploadFile(null); setReportName(''); }}
+        onClose={resetUploadState}
         title="Upload Medical Report"
         description="Upload a PDF or image of your medical report for AI analysis."
       >
@@ -225,11 +276,39 @@ export default function ReportsPage() {
             id="upload-report-dropzone"
           />
           <div className="flex items-center justify-end gap-3 pt-2">
-            <Button variant="secondary" onClick={() => { setShowUpload(false); setUploadFile(null); setReportName(''); }}>
+            <Button variant="secondary" onClick={resetUploadState}>
               Cancel
             </Button>
             <Button icon={Plus} loading={isUploading} onClick={handleUpload} aria-label="Upload report file">
               Upload
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={showReview}
+        onClose={() => { setShowReview(false); setShowUpload(true); }}
+        title="Review Extracted Text"
+        description="Check the OCR result before it is saved and analyzed."
+        size="xl"
+      >
+        <div className="space-y-4">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Confidence: {Math.round((ocrData?.confidence || 0) * 100)}% · {ocrData?.engine || 'ocr'}
+          </div>
+          <textarea
+            value={editedText}
+            onChange={(e) => setEditedText(e.target.value)}
+            className="h-56 w-full rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            placeholder="Edit the extracted text before saving..."
+          />
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Button variant="secondary" onClick={() => { setShowReview(false); setShowUpload(true); }}>
+              Cancel
+            </Button>
+            <Button loading={isUploading} onClick={handleConfirmSave}>
+              Confirm & Save
             </Button>
           </div>
         </div>

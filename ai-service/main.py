@@ -1,11 +1,7 @@
-"""
-FastAPI Application Entry Point
-Initializes the AI service with CORS, service loaders, and router mounting.
-"""
-
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
+import os
 import sys
 import traceback
 
@@ -31,59 +27,39 @@ async def lifespan(app: FastAPI):
     This ensures heavy models load once when the server starts.
     """
     
-    print("\n" + "="*70)
-    print(">> Starting AI Service...")
-    print("="*70)
-    
     # Load all singletons at startup
     try:
-        print("\n[INIT] Initializing services...\n")
         
         # Initialize each service
         try:
             init_groq_client()
         except Exception as e:
-            print(f"[WARN] Groq client initialization failed: {e}")
-            traceback.print_exc()
+            pass
         
         try:
             init_embedder()
         except Exception as e:
-            print(f"[WARN] Embedder initialization failed: {e}")
-            traceback.print_exc()
+            pass
         
         try:
             init_chroma()
         except Exception as e:
-            print(f"[WARN] ChromaDB initialization failed: {e}")
-            traceback.print_exc()
+            pass
         
         try:
             init_whisper()
         except Exception as e:
-            print(f"[WARN] Whisper initialization failed: {e}")
-            traceback.print_exc()
+            pass
         
         try:
             init_ocr()
         except Exception as e:
-            print(f"[WARN] OCR initialization failed: {e}")
-            traceback.print_exc()
-        
-        print("\n" + "="*70)
-        print("[OK] All services initialized successfully!")
-        print(f"[SERVER] API Server: http://{config.API_HOST}:{config.API_PORT}")
-        print("="*70 + "\n")
+            pass
         
     except Exception as e:
-        print(f"\n[ERROR] Failed to initialize services: {e}")
-        traceback.print_exc()
         sys.exit(1)
     
     yield  # Server runs here
-    
-    # Shutdown cleanup (if needed)
-    print("\n[SHUTDOWN] Shutting down AI Service...")
     # Add any cleanup code here (close connections, save state, etc.)
 
 
@@ -182,21 +158,12 @@ async def health_check_detailed():
 # MOUNT ROUTERS
 # ============================================================================
 
-print("[MOUNT] Mounting routers...")
-
 app.include_router(ocr.router)
 app.include_router(chat.router)
 app.include_router(embed.router)
 app.include_router(prescription.router)
 app.include_router(voice.router)
 app.include_router(analyze.router)
-
-print("   [OK] /ocr")
-print("   [OK] /chat")
-print("   [OK] /embed")
-print("   [OK] /prescriptions")
-print("   [OK] /voice")
-print("   [OK] /analyze")
 
 
 # ============================================================================
@@ -253,12 +220,14 @@ async def root():
 
 if __name__ == "__main__":
     import uvicorn
+    reload_enabled = os.getenv("UVICORN_RELOAD", "false").lower() == "true"
     
     print("\n" + "="*70)
     print("Starting FastAPI server with Uvicorn...")
     print(f"Host: {config.API_HOST}")
     print(f"Port: {config.API_PORT}")
     print(f"Workers: {config.API_WORKERS}")
+    print(f"Reload: {reload_enabled}")
     print("="*70 + "\n")
     
     uvicorn.run(
@@ -266,6 +235,7 @@ if __name__ == "__main__":
         host=config.API_HOST,
         port=config.API_PORT,
         workers=config.API_WORKERS,
-        reload=True,  # Auto-reload on code changes
+        reload=reload_enabled,
+        reload_dirs=["./routers"] if reload_enabled else None,
         log_level="info",
     )

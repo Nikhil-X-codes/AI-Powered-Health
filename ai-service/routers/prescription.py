@@ -62,11 +62,14 @@ async def explain_prescription(request: PrescriptionExplainRequest):
         "pharmacy_notes": "Complete the full course"
     }
     """
-    if not request.ocr_text.strip():
+    ocr_text = request.ocr_text.strip()
+    if not ocr_text:
         raise HTTPException(
             status_code=400,
             detail="OCR text is required"
         )
+
+    print(f"[Explain] OCR text ({len(ocr_text)} chars): {ocr_text[:120]}...")
     
     try:
         # Get Groq client
@@ -74,34 +77,39 @@ async def explain_prescription(request: PrescriptionExplainRequest):
         
         # Prepare prompt with OCR text
         prompt = PRESCRIPTION_EXPLAINER_PROMPT.format(
-            ocr_text=request.ocr_text
+            ocr_text=ocr_text
         )
         
         # Call LLM for structured analysis
         response = client.invoke([HumanMessage(content=prompt)])
         response_text = response.content
+        print(f"[Explain] Raw LLM response ({len(response_text)} chars): {response_text[:200]}...")
         
         # Parse JSON response
         try:
             # Clean up markdown code blocks if present
-            if "```json" in response_text:
-                response_text = response_text.split("```json")[1].split("```")[0]
-            elif "```" in response_text:
-                response_text = response_text.split("```")[1].split("```")[0]
+            cleaned = response_text.strip()
+            if "```json" in cleaned:
+                cleaned = cleaned.split("```json")[1].split("```")[0]
+            elif "```" in cleaned:
+                cleaned = cleaned.split("```")[1].split("```")[0]
             
-            data = json.loads(response_text.strip())
+            # Strip leading/trailing whitespace and any stray text
+            cleaned = cleaned.strip()
+            
+            data = json.loads(cleaned)
         except json.JSONDecodeError as e:
+            print(f"[Explain] JSON parse failed: {e}")
+            print(f"[Explain] Cleaned text was: {cleaned[:300]}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to parse LLM response as JSON: {str(e)}"
             )
         
-        # Validate response structure
+        # Validate response structure — tolerate missing key
         if "medicines" not in data:
-            raise HTTPException(
-                status_code=500,
-                detail="Invalid response structure from LLM - missing medicines array"
-            )
+            print("[Explain] LLM response missing 'medicines' key. Keys found:", list(data.keys()))
+            data["medicines"] = []
         
         # Validate medicines
         medicines = []
@@ -117,18 +125,15 @@ async def explain_prescription(request: PrescriptionExplainRequest):
                 medicines.append(m)
             except Exception as e:
                 # Skip invalid medicines but log
-                print(f"Skipping invalid medicine: {e}")
+                print(f"[Explain] Skipping invalid medicine: {e}")
                 continue
         
         if not medicines:
-            raise HTTPException(
-                status_code=400,
-                detail="No valid medicines could be extracted from prescription"
-            )
+            print("[Explain] WARNING: No medicines extracted. Returning degraded response.")
         
         return PrescriptionExplanationResponse(
             medicines=medicines,
-            pharmacy_notes=data.get("pharmacy_notes", "No special notes")
+            pharmacy_notes=data.get("pharmacy_notes", "No medicines could be identified. Please review the prescription image and try again.")
         )
     
     except HTTPException:

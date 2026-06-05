@@ -130,7 +130,7 @@ export function AuthProvider({ children }) {
         method: 'POST',
       });
     } catch (err) {
-      console.error('Logout error:', err);
+      // Logout error silently handled
     } finally {
       // Clear localStorage and state regardless of API response
       localStorage.removeItem('token');

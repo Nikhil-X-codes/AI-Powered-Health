@@ -46,7 +46,6 @@ export const parseFormData = async (request, fieldName = 'file') => {
       fields,
     };
   } catch (error) {
-    console.error('Error parsing form data:', error);
     throw error;
   }
 };

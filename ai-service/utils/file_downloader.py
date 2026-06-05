@@ -18,8 +18,6 @@ try:
     PDF_SUPPORT = True
 except ImportError:
     PDF_SUPPORT = False
-    print("[WARN] pdf2image not installed. PDF support disabled.")
-    print("   Install with: pip install pdf2image python-pptx")
 
 
 def download_file(url: str, timeout: int = 30) -> Tuple[bytes, str]:
@@ -220,7 +218,6 @@ def cleanup_temp_file(file_path: str) -> bool:
             return True
         return False
     except Exception as e:
-        print(f"[WARN] Failed to cleanup {file_path}: {e}")
         return False
 
 

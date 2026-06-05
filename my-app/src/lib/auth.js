@@ -13,7 +13,7 @@ export const comparePassword = async (password, hashedPassword) => {
 };
 
 export const registerUser = async (email, password, name) => {
-  console.log('[Auth] Register attempt:', email);
+
 
   // Check if user already exists (with retry for Neon idle wake-up)
   const existingUser = await withRetry(() =>
@@ -22,7 +22,7 @@ export const registerUser = async (email, password, name) => {
     })
   );
 
-  console.log('[Auth] Existing user check:', existingUser ? 'FOUND' : 'NOT FOUND');
+
 
   if (existingUser) {
     throw new Error('User already exists');
@@ -42,7 +42,7 @@ export const registerUser = async (email, password, name) => {
     })
   );
 
-  console.log('[Auth] User created:', user.id);
+
 
   // Generate token
   const token = generateToken(user.id, user.email);
@@ -58,7 +58,7 @@ export const registerUser = async (email, password, name) => {
 };
 
 export const loginUser = async (email, password) => {
-  console.log('[Auth] Login attempt:', email);
+
 
   // Find user (with retry for Neon idle wake-up)
   const user = await withRetry(() =>
@@ -67,7 +67,7 @@ export const loginUser = async (email, password) => {
     })
   );
 
-  console.log('[Auth] User lookup:', user ? 'FOUND' : 'NOT FOUND');
+
 
   if (!user) {
     throw new Error('Invalid credentials');
@@ -80,7 +80,7 @@ export const loginUser = async (email, password) => {
     throw new Error('Invalid credentials');
   }
 
-  console.log('[Auth] Login successful for:', user.id);
+
 
   // Generate token
   const token = generateToken(user.id, user.email);

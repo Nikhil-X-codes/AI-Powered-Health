@@ -337,12 +337,9 @@ if __name__ == "__main__":
     """ * 10
     
     chunks = chunk_text(sample_text)
-    print(f"Created {len(chunks)} chunks from {len(sample_text)} characters")
-    print(f"First chunk: {chunks[0][:50]}...")
     
     # Example 2: With metadata
     chunks_meta = chunk_text_with_metadata(sample_text, source="test.txt")
-    print(f"\nChunk with metadata: {chunks_meta[0]}")
     
     # Example 3: Medical report
     medical_text = """
@@ -362,6 +359,3 @@ if __name__ == "__main__":
     """ * 5
     
     medical_chunks = chunk_medical_report(medical_text)
-    print(f"\nMedical chunks: {len(medical_chunks)}")
-    for chunk in medical_chunks[:2]:
-        print(f"  Section: {chunk.get('section')}, Length: {chunk['length']}")

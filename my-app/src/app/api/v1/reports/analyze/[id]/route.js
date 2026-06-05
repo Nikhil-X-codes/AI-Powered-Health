@@ -50,39 +50,46 @@ export async function POST(request, { params }) {
       );
     }
 
-    console.log(`Analyzing report ${reportId} from ${report.file_url}`);
-    const fastApiBaseUrl = getFastApiBaseUrl();
-    console.log('[Analyze] Step 1: Sending report to OCR from URL:', {
-      report_id: reportId,
-      file_url: report.file_url,
-    });
-
-    // Step 1: Call FastAPI to extract text from Cloudinary URL
-    const ocrResponse = await fetchWithTimeout(
-      `${fastApiBaseUrl}/ocr/from-url`,
-      {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          file_url: report.file_url,
-          description: report.report_name,
-        }),
-      },
-    );
-
-    if (!ocrResponse.ok) {
-      const errorText = await ocrResponse.text();
-      console.error('FastAPI OCR error:', errorText);
-      return NextResponse.json(
-        { error: 'Failed to extract text from report' },
-        { status: 500 }
-      );
+    let requestBody = {};
+    try {
+      requestBody = await request.json();
+    } catch {
+      requestBody = {};
     }
 
-    const ocrData = await ocrResponse.json();
-    const extractedText = ocrData.text;
+    const clientReviewedText = String(requestBody.ocr_text || '').trim();
 
-  console.log('[Analyze] Step 2: OCR extracted text length:', extractedText.length);
+    const fastApiBaseUrl = getFastApiBaseUrl();
+
+    let extractedText = clientReviewedText;
+
+    // Step 1: Call FastAPI to extract text from Cloudinary URL when the client did not provide reviewed OCR text
+    if (!extractedText) {
+      const ocrResponse = await fetchWithTimeout(
+        `${fastApiBaseUrl}/ocr/from-url`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            file_url: report.file_url,
+            description: report.report_name,
+          }),
+        },
+      );
+
+      if (!ocrResponse.ok) {
+        const errorText = await ocrResponse.text();
+        return NextResponse.json(
+          { error: 'Failed to extract text from report' },
+          { status: 500 }
+        );
+      }
+
+      const ocrData = await ocrResponse.json();
+      extractedText = ocrData.text;
+    }
+
+
 
     // Step 2: Call FastAPI to analyze metrics from OCR text
     const analysisResponse = await fetchWithTimeout(
@@ -99,7 +106,6 @@ export async function POST(request, { params }) {
 
     if (!analysisResponse.ok) {
       const errorText = await analysisResponse.text();
-      console.error('FastAPI analysis error:', errorText);
       return NextResponse.json(
         { error: 'Failed to analyze report metrics' },
         { status: 500 }
@@ -109,7 +115,7 @@ export async function POST(request, { params }) {
     const analysisData = await analysisResponse.json();
     const { metrics, overall_summary } = analysisData;
 
-    console.log('[Analyze] Step 3: Metrics extracted from analysis:', metrics.length);
+
 
     // Step 3: Bulk insert health metrics into database
     if (metrics && metrics.length > 0) {
@@ -124,8 +130,6 @@ export async function POST(request, { params }) {
       await prisma.health_metrics.createMany({
         data: metricsData,
       });
-
-      console.log(`Inserted ${metricsData.length} metrics into database`);
     }
 
     // Step 4: Update report summary and fetch final data
@@ -166,7 +170,7 @@ export async function POST(request, { params }) {
         .filter(Boolean)
         .join('\n\n');
 
-      console.log('[Analyze] Step 4: Sending text to /embed/store with report_id:', reportId);
+
 
       await fetchWithTimeout(
         `${fastApiBaseUrl}/embed/store`,
@@ -193,9 +197,9 @@ export async function POST(request, { params }) {
         60_000
       );
 
-      console.log('[Analyze] Step 5: Embed/store request completed');
+
     } catch (embedError) {
-      console.warn('RAG embed failed for report:', embedError.message);
+      // RAG embed failed silently
     }
 
     return NextResponse.json(
@@ -209,7 +213,6 @@ export async function POST(request, { params }) {
       { status: 200 }
     );
   } catch (error) {
-    console.error('Report analysis error:', error);
     return NextResponse.json(
       { error: `Failed to analyze report: ${error.message}` },
       { status: 500 }

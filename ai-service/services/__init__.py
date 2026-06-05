@@ -13,7 +13,9 @@ from .ocr_engine import (
     init_ocr,
     get_ocr_engine,
     extract_text,
+    extract_text_hybrid,
     extract_text_with_confidence,
+    extract_with_paddle,
     extract_text_from_image,
     extract_text_from_url,
 )
@@ -44,7 +46,9 @@ __all__ = [
     "init_ocr",
     "get_ocr_engine",
     "extract_text",
+    "extract_text_hybrid",
     "extract_text_with_confidence",
+    "extract_with_paddle",
     "extract_text_from_image",
     "extract_text_from_url",
 ]

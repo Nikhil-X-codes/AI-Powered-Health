@@ -35,6 +35,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
+import { Modal } from '@/components/ui/Modal';
 
 const chartColors = ['#059669', '#f97316', '#0ea5e9', '#8b5cf6'];
 const PIE_COLORS = ['#10b981', '#ef4444', '#f59e0b', '#f97316'];
@@ -201,6 +202,10 @@ export default function DashboardPage() {
   const [isUploadingPrescription, setIsUploadingPrescription] = useState(false);
   const [analyzingReportId, setAnalyzingReportId] = useState(null);
   const [explainingPrescriptionId, setExplainingPrescriptionId] = useState(null);
+  const [showReview, setShowReview] = useState(false);
+  const [reviewKind, setReviewKind] = useState(null);
+  const [reviewOcrData, setReviewOcrData] = useState(null);
+  const [reviewText, setReviewText] = useState('');
 
   const scrollToUpload = useCallback(() => {
     uploadSectionRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -218,6 +223,49 @@ export default function DashboardPage() {
       setIsLoading(false);
     }
   }, [fetchWithAuth]);
+
+  const extractOcrPreview = useCallback(async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return fetchWithAuth('/api/v1/ocr/extract', { method: 'POST', body: formData });
+  }, [fetchWithAuth]);
+
+  const clearUploadState = useCallback(() => {
+    setReportFile(null);
+    setReportName('');
+    setPrescriptionFile(null);
+    setShowReview(false);
+    setReviewKind(null);
+    setReviewOcrData(null);
+    setReviewText('');
+    if (reportInputRef.current) reportInputRef.current.value = '';
+    if (prescriptionInputRef.current) prescriptionInputRef.current.value = '';
+  }, []);
+
+  const uploadReportWithText = useCallback(async (ocrText) => {
+    const formData = new FormData();
+    formData.append('report', reportFile);
+    if (reportName.trim()) formData.append('report_name', reportName.trim());
+    const uploadResult = await fetchWithAuth('/api/v1/reports/upload', { method: 'POST', body: formData });
+    if (uploadResult?.reportId) {
+      await fetchWithAuth(`/api/v1/reports/analyze/${uploadResult.reportId}`, {
+        method: 'POST',
+        body: JSON.stringify({ ocr_text: ocrText }),
+      });
+    }
+  }, [fetchWithAuth, reportFile, reportName]);
+
+  const uploadPrescriptionWithText = useCallback(async (ocrText) => {
+    const formData = new FormData();
+    formData.append('prescription', prescriptionFile);
+    const uploadResult = await fetchWithAuth('/api/v1/prescriptions/upload', { method: 'POST', body: formData });
+    if (uploadResult?.prescriptionId) {
+      await fetchWithAuth(`/api/v1/prescriptions/explain/${uploadResult.prescriptionId}`, {
+        method: 'POST',
+        body: JSON.stringify({ ocr_text: ocrText }),
+      });
+    }
+  }, [fetchWithAuth, prescriptionFile]);
 
   useEffect(() => {
     if (!isAuthenticated) return;
@@ -241,17 +289,19 @@ export default function DashboardPage() {
     if (!reportFile) { setError('Choose a report file before uploading.'); return; }
     try {
       setIsUploadingReport(true);
-      setMessage('Uploading report...');
-      const formData = new FormData();
-      formData.append('report', reportFile);
-      if (reportName.trim()) formData.append('report_name', reportName.trim());
-      const uploadResult = await fetchWithAuth('/api/v1/reports/upload', { method: 'POST', body: formData });
-      setReportFile(null);
-      setReportName('');
-      if (reportInputRef.current) reportInputRef.current.value = '';
-      if (uploadResult?.reportId) {
-        await fetchWithAuth(`/api/v1/reports/analyze/${uploadResult.reportId}`, { method: 'POST' });
+      setMessage('Checking report OCR quality...');
+      const ocrResult = await extractOcrPreview(reportFile);
+
+      if (!ocrResult?.is_reliable) {
+        setReviewKind('report');
+        setReviewOcrData(ocrResult);
+        setReviewText(ocrResult?.text || '');
+        setShowReview(true);
+        return;
       }
+
+      await uploadReportWithText(ocrResult?.text || '');
+      clearUploadState();
       setMessage('Report uploaded and analyzed successfully.');
       await fetchDashboard();
     } catch (err) {
@@ -265,20 +315,47 @@ export default function DashboardPage() {
     if (!prescriptionFile) { setError('Choose a prescription file before uploading.'); return; }
     try {
       setIsUploadingPrescription(true);
-      setMessage('Uploading prescription...');
-      const formData = new FormData();
-      formData.append('prescription', prescriptionFile);
-      const uploadResult = await fetchWithAuth('/api/v1/prescriptions/upload', { method: 'POST', body: formData });
-      setPrescriptionFile(null);
-      if (prescriptionInputRef.current) prescriptionInputRef.current.value = '';
-      if (uploadResult?.prescriptionId) {
-        await fetchWithAuth(`/api/v1/prescriptions/explain/${uploadResult.prescriptionId}`, { method: 'POST' });
+      setMessage('Checking prescription OCR quality...');
+      const ocrResult = await extractOcrPreview(prescriptionFile);
+
+      if (!ocrResult?.is_reliable) {
+        setReviewKind('prescription');
+        setReviewOcrData(ocrResult);
+        setReviewText(ocrResult?.text || '');
+        setShowReview(true);
+        return;
       }
+
+      await uploadPrescriptionWithText(ocrResult?.text || '');
+      clearUploadState();
       setMessage('Prescription uploaded and explained successfully.');
       await fetchDashboard();
     } catch (err) {
       setError(err.message || 'Failed to upload prescription.');
     } finally {
+      setIsUploadingPrescription(false);
+    }
+  };
+
+  const handleConfirmReviewedText = async () => {
+    try {
+      if (!reviewKind) return;
+      if (reviewKind === 'report') {
+        setIsUploadingReport(true);
+        setMessage('Saving reviewed report...');
+        await uploadReportWithText(reviewText.trim() || reviewOcrData?.text || '');
+      } else {
+        setIsUploadingPrescription(true);
+        setMessage('Saving reviewed prescription...');
+        await uploadPrescriptionWithText(reviewText.trim() || reviewOcrData?.text || '');
+      }
+      clearUploadState();
+      setMessage(reviewKind === 'report' ? 'Report reviewed and saved successfully.' : 'Prescription reviewed and saved successfully.');
+      await fetchDashboard();
+    } catch (err) {
+      setError(err.message || 'Failed to save reviewed text.');
+    } finally {
+      setIsUploadingReport(false);
       setIsUploadingPrescription(false);
     }
   };
@@ -756,6 +833,42 @@ export default function DashboardPage() {
         onUploadPrescription={scrollToUpload}
         onAskAI={() => router.push('/chat')}
       />
+
+      <Modal
+        isOpen={showReview}
+        onClose={() => { setShowReview(false); setReviewKind(null); setReviewOcrData(null); setReviewText(''); }}
+        title="Review Extracted Text"
+        description="Check the OCR result before it is saved and analyzed."
+        size="xl"
+      >
+        <div className="space-y-4">
+          <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+            Confidence: {Math.round((reviewOcrData?.confidence || 0) * 100)}% · {reviewOcrData?.engine || 'ocr'}
+          </div>
+          <textarea
+            value={reviewText}
+            onChange={(e) => setReviewText(e.target.value)}
+            className="h-56 w-full rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-700 shadow-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            placeholder="Edit the extracted text before saving..."
+          />
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <button
+              onClick={() => { setShowReview(false); setReviewKind(null); setReviewOcrData(null); setReviewText(''); }}
+              className="rounded-full border border-slate-200 px-5 py-2.5 text-sm font-semibold text-slate-700"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConfirmReviewedText}
+              disabled={isUploadingReport || isUploadingPrescription}
+              className="btn-gradient inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+            >
+              {(isUploadingReport || isUploadingPrescription) ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
+              Confirm & Save
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -2,6 +2,25 @@ import { requireAuth } from '@/lib/api-auth';
 import { getForwardAuthHeaders, proxyFormData } from '@/lib/backend/proxy';
 import { prisma } from '@/lib/prisma';
 
+function normalizeSources(sources = []) {
+  const seen = new Set();
+
+  return sources.flatMap((source, index) => {
+    const metadata = source?.metadata || {};
+    const type = metadata.source || metadata.source_type || metadata.type || 'knowledge';
+    const id = metadata.report_id || metadata.prescription_id || metadata.source_id || metadata.id;
+    const label = metadata.report_name || metadata.display_name || metadata.medicine_name || source?.title || type;
+    const key = `${type}:${id || label || index}`;
+
+    if (seen.has(key)) {
+      return [];
+    }
+
+    seen.add(key);
+    return [{ type, id, label }];
+  });
+}
+
 export async function POST(req) {
   const { isValid, user } = requireAuth(req);
   if (!isValid) {
@@ -87,6 +106,7 @@ export async function POST(req) {
 
   return new Response(JSON.stringify({
     ...data,
+    sources: normalizeSources(Array.isArray(data?.sources) ? data.sources : []),
     contextMode: Array.isArray(data?.sources) && data.sources.length === 0 ? 'general' : 'personal',
   }), {
     status: response.status,

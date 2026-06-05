@@ -32,6 +32,9 @@ CHROMA_DISTANCE_METRIC = os.getenv("CHROMA_DISTANCE_METRIC", "cosine")
 # Your .env uses WHISPER_MODEL_SIZE, config uses WHISPER_MODEL
 WHISPER_MODEL = os.getenv("WHISPER_MODEL") or os.getenv("WHISPER_MODEL_SIZE") or "base"
 WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
+WHISPER_CACHE_DIR = os.getenv("WHISPER_CACHE_DIR", "./models_cache/whisper")
+
+UVICORN_RELOAD = os.getenv("UVICORN_RELOAD", "false").lower() == "true"
 
 # ── TTS Configuration ──
 TTS_VOICE = os.getenv("TTS_VOICE", "en-US-AriaNeural")
@@ -44,6 +47,3 @@ CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost
 CORS_ALLOW_CREDENTIALS = os.getenv("CORS_ALLOW_CREDENTIALS", "true").lower() == "true"
 CORS_ALLOW_METHODS = ["*"]
 CORS_ALLOW_HEADERS = ["*"]
-
-
-print(f"✓ Config loaded — ENV: {ENVIRONMENT}, Model: {GROQ_MODEL}, Chroma: {CHROMA_COLLECTION_NAME}")

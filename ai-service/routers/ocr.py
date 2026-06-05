@@ -4,12 +4,13 @@ Endpoints for document text extraction from files or URLs.
 """
 
 from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel
 from typing import Optional
 import tempfile
 import os
-from services import get_ocr_engine, extract_text, extract_text_with_confidence
-from utils import download_and_convert, FileDownloadContext, cleanup_temp_file
+from services import extract_text_hybrid, extract_text_with_confidence
+from utils import FileDownloadContext
 
 router = APIRouter(prefix="/ocr", tags=["OCR"])
 
@@ -39,9 +40,13 @@ async def extract_from_image(file: UploadFile = File(...)):
         tmp_path = tmp.name
     
     try:
-        text = extract_text(tmp_path)
+        result = await run_in_threadpool(extract_text_hybrid, tmp_path)
         return {
-            "text": text,
+            "text": result["text"],
+            "confidence": result["confidence"],
+            "is_reliable": result["is_reliable"],
+            "engine": result["engine"],
+            "warning": result.get("warning"),
             "filename": file.filename
         }
     except RuntimeError as e:
@@ -66,7 +71,7 @@ async def extract_detailed(file: UploadFile = File(...)):
         tmp_path = tmp.name
     
     try:
-        items = extract_text_with_confidence(tmp_path)
+        items = await run_in_threadpool(extract_text_with_confidence, tmp_path)
         return {
             "items": items,
             "filename": file.filename,
@@ -95,23 +100,31 @@ async def extract_from_url(request: OCRRequest):
     Returns:
         {
             "text": "extracted text",
+            "confidence": 0.87,
+            "is_reliable": true,
+            "engine": "easyocr",
             "source": "cloudinary.com",
-            "description": "Patient blood test report"
+            "description": "Patient blood test report",
+            "status": "success"
         }
     """
     try:
         # Download and auto-convert PDF to image if needed
-        with FileDownloadContext(request.file_url, convert_pdf=True) as (temp_path, ext):
-            text = extract_text(temp_path)
-            
-            if not text.strip():
+        with FileDownloadContext(request.file_url, convert_pdf=True) as (temp_path, _ext):
+            result = await run_in_threadpool(extract_text_hybrid, temp_path)
+
+            if not result["text"].strip():
                 raise HTTPException(
                     status_code=400,
                     detail="Could not extract text from file"
                 )
             
             return {
-                "text": text,
+                "text": result["text"],
+                "confidence": result["confidence"],
+                "is_reliable": result["is_reliable"],
+                "engine": result["engine"],
+                "warning": result.get("warning"),
                 "source": request.file_url.split('/')[2],  # Extract domain
                 "description": request.description,
                 "status": "success"

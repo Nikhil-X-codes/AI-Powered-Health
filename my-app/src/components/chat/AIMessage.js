@@ -25,9 +25,9 @@ export function AIMessage({ content, createdAt, sources = [] }) {
           {/* Source badges */}
           {sources.length > 0 && (
             <div className="mt-3 flex flex-wrap gap-2">
-              {sources.map((source) => (
+              {sources.map((source, index) => (
                 <SourceBadge
-                  key={`${source.type}:${source.id}`}
+                  key={`${source?.type || 'source'}:${source?.id || source?.label || 'item'}:${index}`}
                   label={source.label}
                   type={source.type}
                 />
