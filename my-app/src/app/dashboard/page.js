@@ -525,7 +525,7 @@ export default function DashboardPage() {
 
         {hasEmptyDashboard && (
           <EmptyState
-            title="Welcome to MedExplain AI!"
+            title="Welcome to Medgen.ai!"
             description="Upload your first medical report or prescription to start tracking health metrics, trends, and get AI-powered explanations."
             actionLabel="Upload now"
             onAction={scrollToUpload}

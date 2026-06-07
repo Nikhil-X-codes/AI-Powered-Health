@@ -6,8 +6,44 @@ Endpoints for semantic embeddings and vector operations.
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
-from services import embed_text, embed_texts, add_documents, delete_by_document
+import re
+from langchain_core.messages import HumanMessage
+from services import embed_text, embed_texts, add_documents, delete_by_document, get_groq_client
 from utils.text_chunker import chunk_text_with_metadata
+
+def translate_if_hindi(text: str) -> str:
+    """
+    Check if the text contains Devanagari (Hindi) characters.
+    If yes, translate to English using Groq, preserving medical keywords and dosages.
+    """
+    if not text:
+        return text
+        
+    # Devanagari unicode range check: U+0900 to U+097F
+    if not bool(re.search(r'[\u0900-\u097f]', text)):
+        return text
+
+    print(f"[Translation] Devanagari characters detected. Translating text to English using Groq...")
+    
+    prompt = (
+        "You are a professional medical translator. Translate the following prescription/medical report text to English.\n\n"
+        "Strict rules:\n"
+        "1. Translate doctor names, hospital names, patient instructions, and general descriptions to English.\n"
+        "2. Preserve all medicine names, brand names, and chemical names exactly as written.\n"
+        "3. Preserve all dosages, units, and medical abbreviations exactly (e.g., mg, ml, BD, TDS, SOS, etc.).\n"
+        "4. Output only the translated English text. Do not include any markdown, explanations, introductory text, or extra commentary.\n\n"
+        f"Text to translate:\n{text}"
+    )
+    
+    try:
+        client = get_groq_client()
+        response = client.invoke([HumanMessage(content=prompt)])
+        translated_text = response.content.strip()
+        print(f"[Translation] Successfully translated text (original len: {len(text)} -> translated len: {len(translated_text)})")
+        return translated_text
+    except Exception as e:
+        print(f"[Translation] Error during Groq translation: {e}")
+        return text
 
 router = APIRouter(prefix="/embed", tags=["Embeddings"])
 
@@ -42,10 +78,16 @@ class EmbedPipelineRequest(BaseModel):
     overlap: Optional[int] = 50
 
 
+class DeleteDocumentRequest(BaseModel):
+    user_id: str
+    document_id: str
+
+
 class EmbedResponse(BaseModel):
     text: str
     embedding: List[float]
     dimension: int
+
 
 
 @router.post("/single", response_model=EmbedResponse)
@@ -129,9 +171,12 @@ async def store_documents(request: EmbedStoreRequest):
             if not doc.text or not doc.text.strip():
                 continue
 
+            # Translate Hindi text to English if needed
+            doc_text_translated = translate_if_hindi(doc.text)
+
             base_meta = doc.metadata or {}
             chunks = chunk_text_with_metadata(
-                doc.text,
+                doc_text_translated,
                 chunk_size=request.chunk_size or 500,
                 overlap=request.overlap or 50,
                 source=base_meta.get("source")
@@ -209,8 +254,11 @@ async def embed_pipeline(request: EmbedPipelineRequest):
             if not text or not text.strip():
                 continue
 
+            # Translate Hindi text to English if needed
+            text_translated = translate_if_hindi(text)
+
             chunks = chunk_text_with_metadata(
-                text,
+                text_translated,
                 chunk_size=request.chunk_size or 500,
                 overlap=request.overlap or 50,
                 source=request.source,
@@ -267,3 +315,21 @@ async def embed_pipeline(request: EmbedPipelineRequest):
     except Exception as e:
         # Surface exceptions as HTTP 500 with the error message to aid debugging
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.delete("/delete")
+async def delete_document(request: DeleteDocumentRequest):
+    """
+    Delete document embeddings from ChromaDB.
+    """
+    try:
+        if not request.user_id or not request.document_id:
+            raise HTTPException(status_code=400, detail="user_id and document_id are required")
+        delete_by_document(request.user_id, request.document_id)
+        return {
+            "status": "success",
+            "message": f"Successfully cleared chunks for document {request.document_id}"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+

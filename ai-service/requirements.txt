@@ -1,0 +1,13 @@
+google-cloud-vision
+fastapi
+uvicorn
+pydantic
+python-multipart
+requests
+pillow
+python-dotenv
+langchain-groq
+sentence-transformers
+chromadb
+faster-whisper
+edge-tts

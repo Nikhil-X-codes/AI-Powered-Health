@@ -9,9 +9,10 @@ import { StatusBadge } from '@/components/ui/StatusBadge';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Button } from '@/components/ui/Button';
 import { Skeleton } from '@/components/ui/Skeleton';
+import { Modal } from '@/components/ui/Modal';
 import {
   ArrowLeft, ExternalLink, ScanSearch, MessagesSquare,
-  TrendingUp, AlertTriangle, CheckCircle, Info,
+  TrendingUp, AlertTriangle, CheckCircle, Info, Trash2,
 } from 'lucide-react';
 import {
   Line, LineChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid,
@@ -47,6 +48,22 @@ export default function ReportDetailPage({ params }) {
   const [isLoading, setIsLoading] = useState(true);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [selectedMetric, setSelectedMetric] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+
+  const handleDelete = async () => {
+    try {
+      setIsDeleting(true);
+      setShowDeleteModal(false);
+      await fetchWithAuth(`/api/v1/reports/${id}`, { method: 'DELETE' });
+      toast.success('Report deleted successfully');
+      router.push('/dashboard/reports');
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete report');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const loadReport = useCallback(async () => {
     try {
@@ -117,7 +134,7 @@ export default function ReportDetailPage({ params }) {
         </div>
         <div className="flex flex-wrap gap-3">
           <StatusBadge status={isAnalyzed ? 'Analyzed' : 'Pending'} showDot />
-          {report.file_url && (
+           {report.file_url && (
             <a
               href={report.file_url}
               target="_blank"
@@ -129,6 +146,16 @@ export default function ReportDetailPage({ params }) {
               View File
             </a>
           )}
+          <Button
+            variant="danger"
+            size="sm"
+            icon={Trash2}
+            loading={isDeleting}
+            onClick={() => setShowDeleteModal(true)}
+            aria-label="Delete report"
+          >
+            Delete
+          </Button>
         </div>
       </div>
 
@@ -233,6 +260,30 @@ export default function ReportDetailPage({ params }) {
           onAction={() => router.push('/chat')}
         />
       )}
+
+      <Modal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        title="Delete Report"
+        description="Are you sure you want to delete this report? This action cannot be undone."
+      >
+        <div className="space-y-4">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <p className="font-semibold">Warning:</p>
+            <p className="mt-0.5 text-xs opacity-90">
+              This will permanently delete this report and all associated health metrics.
+            </p>
+          </div>
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+              Cancel
+            </Button>
+            <Button variant="danger" loading={isDeleting} onClick={handleDelete} aria-label="Confirm report deletion">
+              Delete Report
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

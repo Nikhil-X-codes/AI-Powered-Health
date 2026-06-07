@@ -50,7 +50,7 @@ export default function LoginPage() {
   return (
     <AuthLayout
       heading="Welcome back"
-      subheading="Sign in to your MedExplain AI account"
+      subheading="Sign in to your Medgen.ai account"
     >
       <form
         onSubmit={handleSubmit}

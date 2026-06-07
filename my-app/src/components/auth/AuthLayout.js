@@ -41,8 +41,7 @@ export default function AuthLayout({ children, heading, subheading }) {
               <Heart className="h-6 w-6 text-emerald-300" />
             </div>
             <div>
-              <span className="text-xl font-bold tracking-tight">MedExplain</span>
-              <span className="ml-1 text-xl font-light text-emerald-300">AI</span>
+              <span className="text-xl font-bold tracking-tight">Medgen.ai</span>
             </div>
           </Link>
         </div>
@@ -108,8 +107,7 @@ export default function AuthLayout({ children, heading, subheading }) {
             <Heart className="h-5 w-5 text-white" />
           </div>
           <div>
-            <span className="text-lg font-bold text-slate-900">MedExplain</span>
-            <span className="ml-1 text-lg font-light text-emerald-600">AI</span>
+            <span className="text-lg font-bold text-slate-900">Medgen.ai</span>
           </div>
         </div>
 

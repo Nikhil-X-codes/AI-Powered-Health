@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { FileDropzone } from '@/components/ui/FileDropzone';
 import { Modal } from '@/components/ui/Modal';
 import { ListSkeleton } from '@/components/ui/Skeleton';
-import { Syringe, Plus, Calendar, Pill, Loader2 } from 'lucide-react';
+import { Syringe, Plus, Calendar, Pill, Loader2, Trash2 } from 'lucide-react';
 
 function formatDate(value) {
   const d = new Date(value);
@@ -33,6 +33,24 @@ export default function PrescriptionsPage() {
   const [showReview, setShowReview] = useState(false);
   const [ocrData, setOcrData] = useState(null);
   const [editedText, setEditedText] = useState('');
+  const [isDeletingId, setIsDeletingId] = useState(null);
+  const [prescriptionToDelete, setPrescriptionToDelete] = useState(null);
+
+  const handleDeletePrescription = async () => {
+    if (!prescriptionToDelete) return;
+    const rxId = prescriptionToDelete.id;
+    try {
+      setIsDeletingId(rxId);
+      setPrescriptionToDelete(null);
+      await fetchWithAuth(`/api/v1/prescriptions/${rxId}`, { method: 'DELETE' });
+      toast.success('Prescription deleted successfully');
+      await loadPrescriptions();
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete prescription');
+    } finally {
+      setIsDeletingId(null);
+    }
+  };
 
   const loadPrescriptions = useCallback(async () => {
     try {
@@ -203,18 +221,35 @@ export default function PrescriptionsPage() {
                       {medicineCount} medicine{medicineCount !== 1 ? 's' : ''}
                     </span>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      isExplained ? router.push(`/dashboard/prescriptions/${rx.id}`) : handleExplain(rx.id);
-                    }}
-                    disabled={explainingId === rx.id}
-                    className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
-                    aria-label={isExplained ? 'View medicine details' : 'Explain this prescription'}
-                  >
-                    {explainingId === rx.id && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
-                    {isExplained ? 'View Medicines' : 'Explain'}
-                  </button>
+                  <div className="mt-4 flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        isExplained ? router.push(`/dashboard/prescriptions/${rx.id}`) : handleExplain(rx.id);
+                      }}
+                      disabled={explainingId === rx.id || isDeletingId === rx.id}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+                      aria-label={isExplained ? 'View medicine details' : 'Explain this prescription'}
+                    >
+                      {explainingId === rx.id && <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />}
+                      {isExplained ? 'View Medicines' : 'Explain'}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPrescriptionToDelete(rx);
+                      }}
+                      disabled={explainingId === rx.id || isDeletingId === rx.id}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100 hover:border-rose-300 disabled:opacity-50"
+                      aria-label="Delete prescription"
+                    >
+                      {isDeletingId === rx.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </article>
             );
@@ -272,6 +307,30 @@ export default function PrescriptionsPage() {
             </Button>
             <Button loading={isUploading} onClick={handleConfirmSave}>
               Confirm & Save
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!prescriptionToDelete}
+        onClose={() => setPrescriptionToDelete(null)}
+        title="Delete Prescription"
+        description="Are you sure you want to delete this prescription? This action cannot be undone."
+      >
+        <div className="space-y-4">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <p className="font-semibold">Warning:</p>
+            <p className="mt-0.5 text-xs opacity-90">
+              This will permanently delete this prescription and all associated medicine details.
+            </p>
+          </div>
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Button variant="secondary" onClick={() => setPrescriptionToDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDeletePrescription} aria-label="Confirm prescription deletion">
+              Delete Prescription
             </Button>
           </div>
         </div>

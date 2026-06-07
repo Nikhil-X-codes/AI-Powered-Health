@@ -11,7 +11,7 @@ import { Button } from '@/components/ui/Button';
 import { FileDropzone } from '@/components/ui/FileDropzone';
 import { Modal } from '@/components/ui/Modal';
 import { ListSkeleton } from '@/components/ui/Skeleton';
-import { FileText, Plus, Search, Calendar, ArrowUpDown, Loader2, ScanSearch } from 'lucide-react';
+import { FileText, Plus, Search, Calendar, ArrowUpDown, Loader2, ScanSearch, Trash2 } from 'lucide-react';
 
 function formatDate(value) {
   const d = new Date(value);
@@ -36,6 +36,24 @@ export default function ReportsPage() {
   const [showReview, setShowReview] = useState(false);
   const [ocrData, setOcrData] = useState(null);
   const [editedText, setEditedText] = useState('');
+  const [isDeletingId, setIsDeletingId] = useState(null);
+  const [reportToDelete, setReportToDelete] = useState(null);
+
+  const handleDeleteReport = async () => {
+    if (!reportToDelete) return;
+    const reportId = reportToDelete.id;
+    try {
+      setIsDeletingId(reportId);
+      setReportToDelete(null);
+      await fetchWithAuth(`/api/v1/reports/${reportId}`, { method: 'DELETE' });
+      toast.success('Report deleted successfully');
+      await loadReports();
+    } catch (err) {
+      toast.error(err.message || 'Failed to delete report');
+    } finally {
+      setIsDeletingId(null);
+    }
+  };
 
   const loadReports = useCallback(async () => {
     try {
@@ -226,22 +244,39 @@ export default function ReportsPage() {
                   </span>
                   <span>{metricCount} metric{metricCount !== 1 ? 's' : ''}</span>
                 </div>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    isAnalyzed ? router.push(`/dashboard/reports/${report.id}`) : handleAnalyze(report.id);
-                  }}
-                  disabled={analyzingId === report.id}
-                  className="mt-4 flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
-                  aria-label={isAnalyzed ? `View analysis for ${report.report_name || 'report'}` : `Analyze ${report.report_name || 'report'}`}
-                >
-                  {analyzingId === report.id ? (
-                    <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                  ) : (
-                    <ScanSearch className="h-3.5 w-3.5" aria-hidden="true" />
-                  )}
-                  {isAnalyzed ? 'View Analysis' : 'Analyze Report'}
-                </button>
+                <div className="mt-4 flex items-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      isAnalyzed ? router.push(`/dashboard/reports/${report.id}`) : handleAnalyze(report.id);
+                    }}
+                    disabled={analyzingId === report.id || isDeletingId === report.id}
+                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+                    aria-label={isAnalyzed ? `View analysis for ${report.report_name || 'report'}` : `Analyze ${report.report_name || 'report'}`}
+                  >
+                    {analyzingId === report.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <ScanSearch className="h-3.5 w-3.5" aria-hidden="true" />
+                    )}
+                    {isAnalyzed ? 'View Analysis' : 'Analyze Report'}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setReportToDelete(report);
+                    }}
+                    disabled={analyzingId === report.id || isDeletingId === report.id}
+                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100 hover:border-rose-300 disabled:opacity-50"
+                    aria-label={`Delete ${report.report_name || 'report'}`}
+                  >
+                    {isDeletingId === report.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    )}
+                  </button>
+                </div>
               </article>
             );
           })}
@@ -309,6 +344,30 @@ export default function ReportsPage() {
             </Button>
             <Button loading={isUploading} onClick={handleConfirmSave}>
               Confirm & Save
+            </Button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={!!reportToDelete}
+        onClose={() => setReportToDelete(null)}
+        title="Delete Report"
+        description="Are you sure you want to delete this report? This action cannot be undone."
+      >
+        <div className="space-y-4">
+          <div className="rounded-xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+            <p className="font-semibold">Warning:</p>
+            <p className="mt-0.5 text-xs opacity-90">
+              This will permanently delete the report &quot;{reportToDelete?.report_name || 'Untitled Report'}&quot; and all of its extracted health metrics.
+            </p>
+          </div>
+          <div className="flex items-center justify-end gap-3 pt-2">
+            <Button variant="secondary" onClick={() => setReportToDelete(null)}>
+              Cancel
+            </Button>
+            <Button variant="danger" onClick={handleDeleteReport} aria-label="Confirm report deletion">
+              Delete Report
             </Button>
           </div>
         </div>

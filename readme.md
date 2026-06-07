@@ -1,10 +1,10 @@
-# MedExplain AI
+# Medgen.ai
 
 > AI-powered healthcare assistance platform that simplifies complex medical language into understandable explanations.
 
 ## Project Overview
 
-MedExplain AI helps patients, elderly users, and non-medical individuals understand their medical reports and prescriptions without relying on unreliable internet sources. The platform uses image preprocessing, confidence-gated OCR, PaddleOCR fallback for handwriting, Large Language Models (LLM), and Retrieval-Augmented Generation (RAG) to provide accurate, personalized medical insights.
+Medgen.ai helps patients, elderly users, and non-medical individuals understand their medical reports and prescriptions without relying on unreliable internet sources. The platform uses image preprocessing, confidence-gated OCR, PaddleOCR fallback for handwriting, Large Language Models (LLM), and Retrieval-Augmented Generation (RAG) to provide accurate, personalized medical insights.
 
 ### Core Capabilities
 
@@ -43,19 +43,17 @@ MedExplain AI helps patients, elderly users, and non-medical individuals underst
 
 **Deployment:** Vercel
 
-### Backend API
+### Backend API (Next.js REST API Routes)
 | Technology | Purpose |
 |------------|---------|
-| **Node.js** | Runtime environment |
-| **Express.js** | REST API framework |
+| **Next.js App Router** | Backend REST endpoints |
 | **PostgreSQL (Neon)** | Relational database |
 | **Prisma ORM** | Database schema management & querying |
-| **JWT (jsonwebtoken)** | Stateless authentication |
+| **JWT (jsonwebtoken / jose)** | Stateless authentication |
 | **bcryptjs** | Password hashing (salt rounds: 10) |
-| **Multer** | Multipart file upload handling |
 | **Cloudinary SDK** | Cloud file storage & CDN |
 
-**Deployment:** Render
+**Deployment:** Vercel (unified with Frontend)
 
 ### AI Microservice
 | Technology | Purpose |
@@ -93,8 +91,8 @@ MedExplain AI helps patients, elderly users, and non-medical individuals underst
 ┌───────────────────────────┼─────────────────────────────────────────┐
 │                         API LAYER                                    │
 │  ┌────────────────────────▼────────────────────────────────────┐   │
-│  │  Node.js + Express (Backend API)                            │   │
-│  │  • JWT Auth  • User APIs  • File handling                 │   │
+│  │  Next.js App Router (REST API backend)                      │   │
+│  │  • JWT Auth  • User APIs  • File handling (parseFormData)   │   │
 │  │  • Prisma ORM → Neon PostgreSQL                           │   │
 │  │  • Proxy to AI Service                                    │   │
 │  └────────────────────────┬────────────────────────────────────┘   │
@@ -145,7 +143,7 @@ User uploads report image/PDF
     ↓
 Next.js → POST /api/v1/reports/upload
     ↓
-Express + Multer → Cloudinary Upload
+Next.js parseFormData → Cloudinary Upload
     ↓
 Prisma saves file_url to `reports` table
     ↓
@@ -153,7 +151,7 @@ User clicks "Analyze"
     ↓
 POST /api/v1/reports/analyze/:id
     ↓
-Express sends Cloudinary URL to FastAPI /ocr
+Next.js API route sends Cloudinary URL to FastAPI /ocr
     ↓
 Preprocessing + EasyOCR confidence check
     ↓
@@ -199,7 +197,7 @@ Inject context + query into prompt
     ↓
 Groq Llama3 generates grounded response
     ↓
-Express saves exchange to `chat_history`
+Next.js API route saves exchange to `chat_history`
     ↓
 Frontend displays AI response
 ```
@@ -217,6 +215,23 @@ LLM response generated
 Edge TTS (Text-to-Speech)
     ↓
 Audio playback to user
+```
+
+### 5. Report/Prescription Deletion Flow
+```
+User clicks Delete and confirms modal
+    ↓
+Next.js → DELETE /api/v1/reports/:id or /api/v1/prescriptions/:id
+    ↓
+Next.js API route: Verifies user authorization and ownership
+    ↓
+Next.js API route: Extracts public ID & deletes files from Cloudinary
+    ↓
+Next.js API route: Calls FastAPI DELETE /embed/delete to clean ChromaDB RAG chunks
+    ↓
+Prisma deletes database record (cascading deletes metrics or medicines)
+    ↓
+Frontend: Refreshes overview list and routes back to overview page
 ```
 
 ---
@@ -246,6 +261,8 @@ Audio playback to user
 | POST | `/prescriptions/upload` | Yes | Upload prescription |
 | POST | `/prescriptions/explain/:id` | Yes | Explain prescription |
 | POST | `/chat` | Yes | AI chat message |
+| DELETE | `/reports/:id` | Yes | Delete report and associated health metrics |
+| DELETE | `/prescriptions/:id` | Yes | Delete prescription and associated medicines |
 
 ---
 

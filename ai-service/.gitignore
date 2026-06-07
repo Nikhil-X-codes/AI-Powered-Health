@@ -57,3 +57,6 @@ temp/
 models_cache/
 chroma_db/
 chroma_data/
+
+google-credentials.json
+*.json
