@@ -102,7 +102,7 @@ async def extract_from_url(request: OCRRequest):
             "text": "extracted text",
             "confidence": 0.87,
             "is_reliable": true,
-            "engine": "easyocr",
+            "engine": "google_vision",
             "source": "cloudinary.com",
             "description": "Patient blood test report",
             "status": "success"

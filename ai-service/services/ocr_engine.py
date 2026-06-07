@@ -21,7 +21,7 @@ if not creds_env or not os.path.exists(creds_env):
         candidate = os.path.join(ai_service_dir, name)
         if os.path.exists(candidate):
             os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = candidate
-            print(f"[OCR] Set GOOGLE_APPLICATION_CREDENTIALS to {candidate}")
+            print(f"[Vision API] Set GOOGLE_APPLICATION_CREDENTIALS to {candidate}")
             break
 
 
@@ -29,7 +29,7 @@ def init_ocr():
     """Verify that Google Vision Client can be initialized."""
     try:
         client = vision.ImageAnnotatorClient()
-        print("[OK] Google Vision OCR engine initialized")
+        print("[OK] Google Vision API engine initialized")
         return client
     except Exception as e:
         print(f"[ERROR] Failed to initialize Google Vision Client: {e}")
@@ -45,7 +45,7 @@ def extract_text_hybrid(image_path: str) -> dict:
     """
     Extract text using Google Vision API document_text_detection.
     """
-    print(f"[OCR] Processing with Google Vision: {os.path.basename(image_path)}")
+    print(f"[Vision API] Processing with Google Vision: {os.path.basename(image_path)}")
     try:
         client = vision.ImageAnnotatorClient()
         with io.open(image_path, 'rb') as image_file:
@@ -83,7 +83,7 @@ def extract_text_hybrid(image_path: str) -> dict:
             "engine": "google_vision"
         }
     except Exception as e:
-        print(f"[OCR] Google Vision extraction error: {e}")
+        print(f"[Vision API] Google Vision extraction error: {e}")
         raise RuntimeError(f"Google Vision API failure: {str(e)}")
 
 
@@ -133,7 +133,7 @@ def extract_text_with_confidence(image_path: str) -> list:
                         })
         return items
     except Exception as e:
-        print(f"[OCR] Google Vision detailed extraction error: {e}")
+        print(f"[Vision API] Google Vision detailed extraction error: {e}")
         raise RuntimeError(f"Google Vision API failure: {str(e)}")
 
 

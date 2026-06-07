@@ -20,11 +20,11 @@ export default function AuthLayout({ children, heading, subheading }) {
   return (
     <div className="flex min-h-screen flex-col bg-gradient-to-b from-slate-50 to-white lg:flex-row">
       {/* ── Left Panel — Branding ────────────────────────────── */}
-      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 p-6 text-white sm:p-8 lg:flex lg:p-10">
+      <div className="relative hidden flex-1 flex-col justify-between overflow-hidden bg-gradient-to-br from-slate-950 via-emerald-950 to-slate-900 p-6 text-white sm:p-8 lg:flex lg:p-10">
         {/* Animated background orbs */}
-        <div className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-emerald-500/20 blur-3xl animate-float" />
-        <div className="pointer-events-none absolute right-[-60px] top-[40%] h-72 w-72 rounded-full bg-teal-400/15 blur-3xl animate-float-delayed" />
-        <div className="pointer-events-none absolute bottom-[-40px] left-[30%] h-64 w-64 rounded-full bg-emerald-300/10 blur-3xl animate-float" />
+        <div className="pointer-events-none absolute -left-24 -top-24 h-96 w-96 rounded-full bg-emerald-500/20 blur-3xl animate-float" />
+        <div className="pointer-events-none absolute right-[-60px] top-[35%] h-80 w-80 rounded-full bg-teal-400/20 blur-3xl animate-float-delayed" />
+        <div className="pointer-events-none absolute bottom-[-40px] left-[25%] h-72 w-72 rounded-full bg-sky-500/15 blur-3xl animate-float" />
 
         {/* Decorative grid pattern */}
         <div className="pointer-events-none absolute inset-0 opacity-[0.04]"
@@ -37,11 +37,11 @@ export default function AuthLayout({ children, heading, subheading }) {
         {/* Top — Logo */}
         <div className="relative z-10">
           <Link href="/" className="inline-flex items-center gap-3 group">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/15 backdrop-blur-sm transition group-hover:bg-white/25">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/10 border border-white/10 backdrop-blur-md transition group-hover:bg-white/20 shadow-sm">
               <Heart className="h-6 w-6 text-emerald-300" />
             </div>
             <div>
-              <span className="text-xl font-bold tracking-tight">Medgen.ai</span>
+              <span className="text-xl font-bold tracking-tight text-white">medzee ai</span>
             </div>
           </Link>
         </div>
@@ -103,11 +103,11 @@ export default function AuthLayout({ children, heading, subheading }) {
       <div className="relative flex flex-1 flex-col bg-gradient-to-b from-slate-50 to-white">
         {/* Mobile-only top branding */}
         <div className="flex items-center gap-3 px-6 pt-6 lg:hidden">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-emerald-600 shadow-md">
             <Heart className="h-5 w-5 text-white" />
           </div>
           <div>
-            <span className="text-lg font-bold text-slate-900">Medgen.ai</span>
+            <span className="text-lg font-bold text-slate-900">medzee ai</span>
           </div>
         </div>
 

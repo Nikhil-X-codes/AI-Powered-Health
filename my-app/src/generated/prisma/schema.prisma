@@ -68,11 +68,18 @@ model medicines {
 }
 
 model chat_history {
-  id           String   @id @default(uuid()) @db.Uuid
-  user_id      String   @db.Uuid
-  user_message String?  @db.Text
-  ai_response  String?  @db.Text
-  created_at   DateTime @default(now())
+  id              String   @id @default(uuid()) @db.Uuid
+  user_id         String   @db.Uuid
+  session_id      String   @db.Uuid
+  role            String   @default("user") @db.VarChar(20)
+  content         String?  @db.Text
+  report_id       String?  @db.Uuid
+  prescription_id String?  @db.Uuid
+  sources         String?  @db.Text
+  context_mode    String?  @db.VarChar(20)
+  created_at      DateTime @default(now())
 
   user users @relation(fields: [user_id], references: [id], onDelete: Cascade)
+
+  @@index([user_id, session_id, created_at])
 }

@@ -6939,24 +6939,39 @@ export namespace Prisma {
   export type Chat_historyMinAggregateOutputType = {
     id: string | null
     user_id: string | null
-    user_message: string | null
-    ai_response: string | null
+    session_id: string | null
+    role: string | null
+    content: string | null
+    report_id: string | null
+    prescription_id: string | null
+    sources: string | null
+    context_mode: string | null
     created_at: Date | null
   }
 
   export type Chat_historyMaxAggregateOutputType = {
     id: string | null
     user_id: string | null
-    user_message: string | null
-    ai_response: string | null
+    session_id: string | null
+    role: string | null
+    content: string | null
+    report_id: string | null
+    prescription_id: string | null
+    sources: string | null
+    context_mode: string | null
     created_at: Date | null
   }
 
   export type Chat_historyCountAggregateOutputType = {
     id: number
     user_id: number
-    user_message: number
-    ai_response: number
+    session_id: number
+    role: number
+    content: number
+    report_id: number
+    prescription_id: number
+    sources: number
+    context_mode: number
     created_at: number
     _all: number
   }
@@ -6965,24 +6980,39 @@ export namespace Prisma {
   export type Chat_historyMinAggregateInputType = {
     id?: true
     user_id?: true
-    user_message?: true
-    ai_response?: true
+    session_id?: true
+    role?: true
+    content?: true
+    report_id?: true
+    prescription_id?: true
+    sources?: true
+    context_mode?: true
     created_at?: true
   }
 
   export type Chat_historyMaxAggregateInputType = {
     id?: true
     user_id?: true
-    user_message?: true
-    ai_response?: true
+    session_id?: true
+    role?: true
+    content?: true
+    report_id?: true
+    prescription_id?: true
+    sources?: true
+    context_mode?: true
     created_at?: true
   }
 
   export type Chat_historyCountAggregateInputType = {
     id?: true
     user_id?: true
-    user_message?: true
-    ai_response?: true
+    session_id?: true
+    role?: true
+    content?: true
+    report_id?: true
+    prescription_id?: true
+    sources?: true
+    context_mode?: true
     created_at?: true
     _all?: true
   }
@@ -7062,8 +7092,13 @@ export namespace Prisma {
   export type Chat_historyGroupByOutputType = {
     id: string
     user_id: string
-    user_message: string | null
-    ai_response: string | null
+    session_id: string
+    role: string
+    content: string | null
+    report_id: string | null
+    prescription_id: string | null
+    sources: string | null
+    context_mode: string | null
     created_at: Date
     _count: Chat_historyCountAggregateOutputType | null
     _min: Chat_historyMinAggregateOutputType | null
@@ -7087,8 +7122,13 @@ export namespace Prisma {
   export type chat_historySelect<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     user_id?: boolean
-    user_message?: boolean
-    ai_response?: boolean
+    session_id?: boolean
+    role?: boolean
+    content?: boolean
+    report_id?: boolean
+    prescription_id?: boolean
+    sources?: boolean
+    context_mode?: boolean
     created_at?: boolean
     user?: boolean | usersDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["chat_history"]>
@@ -7096,8 +7136,13 @@ export namespace Prisma {
   export type chat_historySelectCreateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     user_id?: boolean
-    user_message?: boolean
-    ai_response?: boolean
+    session_id?: boolean
+    role?: boolean
+    content?: boolean
+    report_id?: boolean
+    prescription_id?: boolean
+    sources?: boolean
+    context_mode?: boolean
     created_at?: boolean
     user?: boolean | usersDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["chat_history"]>
@@ -7105,8 +7150,13 @@ export namespace Prisma {
   export type chat_historySelectUpdateManyAndReturn<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetSelect<{
     id?: boolean
     user_id?: boolean
-    user_message?: boolean
-    ai_response?: boolean
+    session_id?: boolean
+    role?: boolean
+    content?: boolean
+    report_id?: boolean
+    prescription_id?: boolean
+    sources?: boolean
+    context_mode?: boolean
     created_at?: boolean
     user?: boolean | usersDefaultArgs<ExtArgs>
   }, ExtArgs["result"]["chat_history"]>
@@ -7114,12 +7164,17 @@ export namespace Prisma {
   export type chat_historySelectScalar = {
     id?: boolean
     user_id?: boolean
-    user_message?: boolean
-    ai_response?: boolean
+    session_id?: boolean
+    role?: boolean
+    content?: boolean
+    report_id?: boolean
+    prescription_id?: boolean
+    sources?: boolean
+    context_mode?: boolean
     created_at?: boolean
   }
 
-  export type chat_historyOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "user_id" | "user_message" | "ai_response" | "created_at", ExtArgs["result"]["chat_history"]>
+  export type chat_historyOmit<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = $Extensions.GetOmit<"id" | "user_id" | "session_id" | "role" | "content" | "report_id" | "prescription_id" | "sources" | "context_mode" | "created_at", ExtArgs["result"]["chat_history"]>
   export type chat_historyInclude<ExtArgs extends $Extensions.InternalArgs = $Extensions.DefaultArgs> = {
     user?: boolean | usersDefaultArgs<ExtArgs>
   }
@@ -7138,8 +7193,13 @@ export namespace Prisma {
     scalars: $Extensions.GetPayloadResult<{
       id: string
       user_id: string
-      user_message: string | null
-      ai_response: string | null
+      session_id: string
+      role: string
+      content: string | null
+      report_id: string | null
+      prescription_id: string | null
+      sources: string | null
+      context_mode: string | null
       created_at: Date
     }, ExtArgs["result"]["chat_history"]>
     composites: {}
@@ -7567,8 +7627,13 @@ export namespace Prisma {
   interface chat_historyFieldRefs {
     readonly id: FieldRef<"chat_history", 'String'>
     readonly user_id: FieldRef<"chat_history", 'String'>
-    readonly user_message: FieldRef<"chat_history", 'String'>
-    readonly ai_response: FieldRef<"chat_history", 'String'>
+    readonly session_id: FieldRef<"chat_history", 'String'>
+    readonly role: FieldRef<"chat_history", 'String'>
+    readonly content: FieldRef<"chat_history", 'String'>
+    readonly report_id: FieldRef<"chat_history", 'String'>
+    readonly prescription_id: FieldRef<"chat_history", 'String'>
+    readonly sources: FieldRef<"chat_history", 'String'>
+    readonly context_mode: FieldRef<"chat_history", 'String'>
     readonly created_at: FieldRef<"chat_history", 'DateTime'>
   }
     
@@ -8065,8 +8130,13 @@ export namespace Prisma {
   export const Chat_historyScalarFieldEnum: {
     id: 'id',
     user_id: 'user_id',
-    user_message: 'user_message',
-    ai_response: 'ai_response',
+    session_id: 'session_id',
+    role: 'role',
+    content: 'content',
+    report_id: 'report_id',
+    prescription_id: 'prescription_id',
+    sources: 'sources',
+    context_mode: 'context_mode',
     created_at: 'created_at'
   };
 
@@ -8461,8 +8531,13 @@ export namespace Prisma {
     NOT?: chat_historyWhereInput | chat_historyWhereInput[]
     id?: UuidFilter<"chat_history"> | string
     user_id?: UuidFilter<"chat_history"> | string
-    user_message?: StringNullableFilter<"chat_history"> | string | null
-    ai_response?: StringNullableFilter<"chat_history"> | string | null
+    session_id?: UuidFilter<"chat_history"> | string
+    role?: StringFilter<"chat_history"> | string
+    content?: StringNullableFilter<"chat_history"> | string | null
+    report_id?: UuidNullableFilter<"chat_history"> | string | null
+    prescription_id?: UuidNullableFilter<"chat_history"> | string | null
+    sources?: StringNullableFilter<"chat_history"> | string | null
+    context_mode?: StringNullableFilter<"chat_history"> | string | null
     created_at?: DateTimeFilter<"chat_history"> | Date | string
     user?: XOR<UsersScalarRelationFilter, usersWhereInput>
   }
@@ -8470,8 +8545,13 @@ export namespace Prisma {
   export type chat_historyOrderByWithRelationInput = {
     id?: SortOrder
     user_id?: SortOrder
-    user_message?: SortOrderInput | SortOrder
-    ai_response?: SortOrderInput | SortOrder
+    session_id?: SortOrder
+    role?: SortOrder
+    content?: SortOrderInput | SortOrder
+    report_id?: SortOrderInput | SortOrder
+    prescription_id?: SortOrderInput | SortOrder
+    sources?: SortOrderInput | SortOrder
+    context_mode?: SortOrderInput | SortOrder
     created_at?: SortOrder
     user?: usersOrderByWithRelationInput
   }
@@ -8482,8 +8562,13 @@ export namespace Prisma {
     OR?: chat_historyWhereInput[]
     NOT?: chat_historyWhereInput | chat_historyWhereInput[]
     user_id?: UuidFilter<"chat_history"> | string
-    user_message?: StringNullableFilter<"chat_history"> | string | null
-    ai_response?: StringNullableFilter<"chat_history"> | string | null
+    session_id?: UuidFilter<"chat_history"> | string
+    role?: StringFilter<"chat_history"> | string
+    content?: StringNullableFilter<"chat_history"> | string | null
+    report_id?: UuidNullableFilter<"chat_history"> | string | null
+    prescription_id?: UuidNullableFilter<"chat_history"> | string | null
+    sources?: StringNullableFilter<"chat_history"> | string | null
+    context_mode?: StringNullableFilter<"chat_history"> | string | null
     created_at?: DateTimeFilter<"chat_history"> | Date | string
     user?: XOR<UsersScalarRelationFilter, usersWhereInput>
   }, "id">
@@ -8491,8 +8576,13 @@ export namespace Prisma {
   export type chat_historyOrderByWithAggregationInput = {
     id?: SortOrder
     user_id?: SortOrder
-    user_message?: SortOrderInput | SortOrder
-    ai_response?: SortOrderInput | SortOrder
+    session_id?: SortOrder
+    role?: SortOrder
+    content?: SortOrderInput | SortOrder
+    report_id?: SortOrderInput | SortOrder
+    prescription_id?: SortOrderInput | SortOrder
+    sources?: SortOrderInput | SortOrder
+    context_mode?: SortOrderInput | SortOrder
     created_at?: SortOrder
     _count?: chat_historyCountOrderByAggregateInput
     _max?: chat_historyMaxOrderByAggregateInput
@@ -8505,8 +8595,13 @@ export namespace Prisma {
     NOT?: chat_historyScalarWhereWithAggregatesInput | chat_historyScalarWhereWithAggregatesInput[]
     id?: UuidWithAggregatesFilter<"chat_history"> | string
     user_id?: UuidWithAggregatesFilter<"chat_history"> | string
-    user_message?: StringNullableWithAggregatesFilter<"chat_history"> | string | null
-    ai_response?: StringNullableWithAggregatesFilter<"chat_history"> | string | null
+    session_id?: UuidWithAggregatesFilter<"chat_history"> | string
+    role?: StringWithAggregatesFilter<"chat_history"> | string
+    content?: StringNullableWithAggregatesFilter<"chat_history"> | string | null
+    report_id?: UuidNullableWithAggregatesFilter<"chat_history"> | string | null
+    prescription_id?: UuidNullableWithAggregatesFilter<"chat_history"> | string | null
+    sources?: StringNullableWithAggregatesFilter<"chat_history"> | string | null
+    context_mode?: StringNullableWithAggregatesFilter<"chat_history"> | string | null
     created_at?: DateTimeWithAggregatesFilter<"chat_history"> | Date | string
   }
 
@@ -8836,8 +8931,13 @@ export namespace Prisma {
 
   export type chat_historyCreateInput = {
     id?: string
-    user_message?: string | null
-    ai_response?: string | null
+    session_id: string
+    role?: string
+    content?: string | null
+    report_id?: string | null
+    prescription_id?: string | null
+    sources?: string | null
+    context_mode?: string | null
     created_at?: Date | string
     user: usersCreateNestedOneWithoutChat_historyInput
   }
@@ -8845,15 +8945,25 @@ export namespace Prisma {
   export type chat_historyUncheckedCreateInput = {
     id?: string
     user_id: string
-    user_message?: string | null
-    ai_response?: string | null
+    session_id: string
+    role?: string
+    content?: string | null
+    report_id?: string | null
+    prescription_id?: string | null
+    sources?: string | null
+    context_mode?: string | null
     created_at?: Date | string
   }
 
   export type chat_historyUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
-    user_message?: NullableStringFieldUpdateOperationsInput | string | null
-    ai_response?: NullableStringFieldUpdateOperationsInput | string | null
+    session_id?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    content?: NullableStringFieldUpdateOperationsInput | string | null
+    report_id?: NullableStringFieldUpdateOperationsInput | string | null
+    prescription_id?: NullableStringFieldUpdateOperationsInput | string | null
+    sources?: NullableStringFieldUpdateOperationsInput | string | null
+    context_mode?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
     user?: usersUpdateOneRequiredWithoutChat_historyNestedInput
   }
@@ -8861,31 +8971,51 @@ export namespace Prisma {
   export type chat_historyUncheckedUpdateInput = {
     id?: StringFieldUpdateOperationsInput | string
     user_id?: StringFieldUpdateOperationsInput | string
-    user_message?: NullableStringFieldUpdateOperationsInput | string | null
-    ai_response?: NullableStringFieldUpdateOperationsInput | string | null
+    session_id?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    content?: NullableStringFieldUpdateOperationsInput | string | null
+    report_id?: NullableStringFieldUpdateOperationsInput | string | null
+    prescription_id?: NullableStringFieldUpdateOperationsInput | string | null
+    sources?: NullableStringFieldUpdateOperationsInput | string | null
+    context_mode?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type chat_historyCreateManyInput = {
     id?: string
     user_id: string
-    user_message?: string | null
-    ai_response?: string | null
+    session_id: string
+    role?: string
+    content?: string | null
+    report_id?: string | null
+    prescription_id?: string | null
+    sources?: string | null
+    context_mode?: string | null
     created_at?: Date | string
   }
 
   export type chat_historyUpdateManyMutationInput = {
     id?: StringFieldUpdateOperationsInput | string
-    user_message?: NullableStringFieldUpdateOperationsInput | string | null
-    ai_response?: NullableStringFieldUpdateOperationsInput | string | null
+    session_id?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    content?: NullableStringFieldUpdateOperationsInput | string | null
+    report_id?: NullableStringFieldUpdateOperationsInput | string | null
+    prescription_id?: NullableStringFieldUpdateOperationsInput | string | null
+    sources?: NullableStringFieldUpdateOperationsInput | string | null
+    context_mode?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type chat_historyUncheckedUpdateManyInput = {
     id?: StringFieldUpdateOperationsInput | string
     user_id?: StringFieldUpdateOperationsInput | string
-    user_message?: NullableStringFieldUpdateOperationsInput | string | null
-    ai_response?: NullableStringFieldUpdateOperationsInput | string | null
+    session_id?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    content?: NullableStringFieldUpdateOperationsInput | string | null
+    report_id?: NullableStringFieldUpdateOperationsInput | string | null
+    prescription_id?: NullableStringFieldUpdateOperationsInput | string | null
+    sources?: NullableStringFieldUpdateOperationsInput | string | null
+    context_mode?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
@@ -9214,28 +9344,70 @@ export namespace Prisma {
     side_effects?: SortOrder
   }
 
+  export type UuidNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
+  }
+
   export type chat_historyCountOrderByAggregateInput = {
     id?: SortOrder
     user_id?: SortOrder
-    user_message?: SortOrder
-    ai_response?: SortOrder
+    session_id?: SortOrder
+    role?: SortOrder
+    content?: SortOrder
+    report_id?: SortOrder
+    prescription_id?: SortOrder
+    sources?: SortOrder
+    context_mode?: SortOrder
     created_at?: SortOrder
   }
 
   export type chat_historyMaxOrderByAggregateInput = {
     id?: SortOrder
     user_id?: SortOrder
-    user_message?: SortOrder
-    ai_response?: SortOrder
+    session_id?: SortOrder
+    role?: SortOrder
+    content?: SortOrder
+    report_id?: SortOrder
+    prescription_id?: SortOrder
+    sources?: SortOrder
+    context_mode?: SortOrder
     created_at?: SortOrder
   }
 
   export type chat_historyMinOrderByAggregateInput = {
     id?: SortOrder
     user_id?: SortOrder
-    user_message?: SortOrder
-    ai_response?: SortOrder
+    session_id?: SortOrder
+    role?: SortOrder
+    content?: SortOrder
+    report_id?: SortOrder
+    prescription_id?: SortOrder
+    sources?: SortOrder
+    context_mode?: SortOrder
     created_at?: SortOrder
+  }
+
+  export type UuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    mode?: QueryMode
+    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
   }
 
   export type reportsCreateNestedManyWithoutUserInput = {
@@ -9664,6 +9836,31 @@ export namespace Prisma {
     not?: NestedIntNullableFilter<$PrismaModel> | number | null
   }
 
+  export type NestedUuidNullableFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidNullableFilter<$PrismaModel> | string | null
+  }
+
+  export type NestedUuidNullableWithAggregatesFilter<$PrismaModel = never> = {
+    equals?: string | StringFieldRefInput<$PrismaModel> | null
+    in?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    notIn?: string[] | ListStringFieldRefInput<$PrismaModel> | null
+    lt?: string | StringFieldRefInput<$PrismaModel>
+    lte?: string | StringFieldRefInput<$PrismaModel>
+    gt?: string | StringFieldRefInput<$PrismaModel>
+    gte?: string | StringFieldRefInput<$PrismaModel>
+    not?: NestedUuidNullableWithAggregatesFilter<$PrismaModel> | string | null
+    _count?: NestedIntNullableFilter<$PrismaModel>
+    _min?: NestedStringNullableFilter<$PrismaModel>
+    _max?: NestedStringNullableFilter<$PrismaModel>
+  }
+
   export type reportsCreateWithoutUserInput = {
     id?: string
     file_url: string
@@ -9720,15 +9917,25 @@ export namespace Prisma {
 
   export type chat_historyCreateWithoutUserInput = {
     id?: string
-    user_message?: string | null
-    ai_response?: string | null
+    session_id: string
+    role?: string
+    content?: string | null
+    report_id?: string | null
+    prescription_id?: string | null
+    sources?: string | null
+    context_mode?: string | null
     created_at?: Date | string
   }
 
   export type chat_historyUncheckedCreateWithoutUserInput = {
     id?: string
-    user_message?: string | null
-    ai_response?: string | null
+    session_id: string
+    role?: string
+    content?: string | null
+    report_id?: string | null
+    prescription_id?: string | null
+    sources?: string | null
+    context_mode?: string | null
     created_at?: Date | string
   }
 
@@ -9819,8 +10026,13 @@ export namespace Prisma {
     NOT?: chat_historyScalarWhereInput | chat_historyScalarWhereInput[]
     id?: UuidFilter<"chat_history"> | string
     user_id?: UuidFilter<"chat_history"> | string
-    user_message?: StringNullableFilter<"chat_history"> | string | null
-    ai_response?: StringNullableFilter<"chat_history"> | string | null
+    session_id?: UuidFilter<"chat_history"> | string
+    role?: StringFilter<"chat_history"> | string
+    content?: StringNullableFilter<"chat_history"> | string | null
+    report_id?: UuidNullableFilter<"chat_history"> | string | null
+    prescription_id?: UuidNullableFilter<"chat_history"> | string | null
+    sources?: StringNullableFilter<"chat_history"> | string | null
+    context_mode?: StringNullableFilter<"chat_history"> | string | null
     created_at?: DateTimeFilter<"chat_history"> | Date | string
   }
 
@@ -10220,8 +10432,13 @@ export namespace Prisma {
 
   export type chat_historyCreateManyUserInput = {
     id?: string
-    user_message?: string | null
-    ai_response?: string | null
+    session_id: string
+    role?: string
+    content?: string | null
+    report_id?: string | null
+    prescription_id?: string | null
+    sources?: string | null
+    context_mode?: string | null
     created_at?: Date | string
   }
 
@@ -10276,22 +10493,37 @@ export namespace Prisma {
 
   export type chat_historyUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
-    user_message?: NullableStringFieldUpdateOperationsInput | string | null
-    ai_response?: NullableStringFieldUpdateOperationsInput | string | null
+    session_id?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    content?: NullableStringFieldUpdateOperationsInput | string | null
+    report_id?: NullableStringFieldUpdateOperationsInput | string | null
+    prescription_id?: NullableStringFieldUpdateOperationsInput | string | null
+    sources?: NullableStringFieldUpdateOperationsInput | string | null
+    context_mode?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type chat_historyUncheckedUpdateWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
-    user_message?: NullableStringFieldUpdateOperationsInput | string | null
-    ai_response?: NullableStringFieldUpdateOperationsInput | string | null
+    session_id?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    content?: NullableStringFieldUpdateOperationsInput | string | null
+    report_id?: NullableStringFieldUpdateOperationsInput | string | null
+    prescription_id?: NullableStringFieldUpdateOperationsInput | string | null
+    sources?: NullableStringFieldUpdateOperationsInput | string | null
+    context_mode?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 
   export type chat_historyUncheckedUpdateManyWithoutUserInput = {
     id?: StringFieldUpdateOperationsInput | string
-    user_message?: NullableStringFieldUpdateOperationsInput | string | null
-    ai_response?: NullableStringFieldUpdateOperationsInput | string | null
+    session_id?: StringFieldUpdateOperationsInput | string
+    role?: StringFieldUpdateOperationsInput | string
+    content?: NullableStringFieldUpdateOperationsInput | string | null
+    report_id?: NullableStringFieldUpdateOperationsInput | string | null
+    prescription_id?: NullableStringFieldUpdateOperationsInput | string | null
+    sources?: NullableStringFieldUpdateOperationsInput | string | null
+    context_mode?: NullableStringFieldUpdateOperationsInput | string | null
     created_at?: DateTimeFieldUpdateOperationsInput | Date | string
   }
 

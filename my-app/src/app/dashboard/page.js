@@ -289,7 +289,7 @@ export default function DashboardPage() {
     if (!reportFile) { setError('Choose a report file before uploading.'); return; }
     try {
       setIsUploadingReport(true);
-      setMessage('Checking report OCR quality...');
+      setMessage('Checking report extraction quality...');
       const ocrResult = await extractOcrPreview(reportFile);
 
       if (!ocrResult?.is_reliable) {
@@ -315,7 +315,7 @@ export default function DashboardPage() {
     if (!prescriptionFile) { setError('Choose a prescription file before uploading.'); return; }
     try {
       setIsUploadingPrescription(true);
-      setMessage('Checking prescription OCR quality...');
+      setMessage('Checking prescription extraction quality...');
       const ocrResult = await extractOcrPreview(prescriptionFile);
 
       if (!ocrResult?.is_reliable) {
@@ -525,7 +525,7 @@ export default function DashboardPage() {
 
         {hasEmptyDashboard && (
           <EmptyState
-            title="Welcome to Medgen.ai!"
+            title="Welcome to medzee ai!"
             description="Upload your first medical report or prescription to start tracking health metrics, trends, and get AI-powered explanations."
             actionLabel="Upload now"
             onAction={scrollToUpload}
@@ -838,12 +838,12 @@ export default function DashboardPage() {
         isOpen={showReview}
         onClose={() => { setShowReview(false); setReviewKind(null); setReviewOcrData(null); setReviewText(''); }}
         title="Review Extracted Text"
-        description="Check the OCR result before it is saved and analyzed."
+        description="Check the extracted text before it is saved and analyzed."
         size="xl"
       >
         <div className="space-y-4">
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Confidence: {Math.round((reviewOcrData?.confidence || 0) * 100)}% · {reviewOcrData?.engine || 'ocr'}
+            Confidence: {Math.round((reviewOcrData?.confidence || 0) * 100)}% · {reviewOcrData?.engine === 'google_vision' ? 'Google Vision API' : (reviewOcrData?.engine || 'Google Vision')}
           </div>
           <textarea
             value={reviewText}

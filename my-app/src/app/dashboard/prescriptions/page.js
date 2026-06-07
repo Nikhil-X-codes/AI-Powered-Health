@@ -288,12 +288,12 @@ export default function PrescriptionsPage() {
         isOpen={showReview}
         onClose={() => { setShowReview(false); setShowUpload(true); }}
         title="Review Extracted Text"
-        description="Check the OCR result before it is saved and explained."
+        description="Check the extracted text before it is saved and explained."
         size="xl"
       >
         <div className="space-y-4">
           <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
-            Confidence: {Math.round((ocrData?.confidence || 0) * 100)}% · {ocrData?.engine || 'ocr'}
+            Confidence: {Math.round((ocrData?.confidence || 0) * 100)}% · {ocrData?.engine === 'google_vision' ? 'Google Vision API' : (ocrData?.engine || 'Google Vision')}
           </div>
           <textarea
             value={editedText}

@@ -64,7 +64,7 @@ export async function POST(request, { params }) {
 
     let extractedText = clientReviewedText;
 
-    // Step 1: Call FastAPI to extract text from Cloudinary URL when the client did not provide reviewed OCR text
+    // Step 1: Call FastAPI to extract text from Cloudinary URL when the client did not provide reviewed Vision API text
     if (!extractedText) {
       const ocrResponse = await fetchWithTimeout(
         `${fastApiBaseUrl}/ocr/from-url`,
@@ -171,7 +171,7 @@ export async function POST(request, { params }) {
 
       const prescriptionTextToEmbed = [
         'Prescription:',
-        'OCR Text:',
+        'Vision API Extracted Text:',
         extractedText,
         medicinesText ? `Medicines:\n${medicinesText}` : null,
       ]

@@ -1,4 +1,5 @@
 import { getAuthenticatedUser, getRequestToken } from '@/lib/backend/auth';
+import { prisma } from '@/lib/prisma';
 
 function getFastApiBaseUrl() {
   const url = process.env.FASTAPI_URL || process.env.AI_SERVICE_URL;
@@ -69,6 +70,9 @@ export async function POST(req) {
       });
     }
 
+    // Get or generate session_id
+    const sessionId = body?.session_id || crypto.randomUUID();
+
     const payload = {
       question,
       user_id: String(user.userId),
@@ -101,11 +105,42 @@ export async function POST(req) {
     const data = await upstream.json();
     const sources = normalizeSources(Array.isArray(data?.sources) ? data.sources : []);
     const contextMode = Array.isArray(data?.sources) && data.sources.length === 0 ? 'general' : 'personal';
+    const answerText = data.answer || data.response || '';
+
+    // Save chat history (user message + AI response)
+    try {
+      await prisma.chat_history.createMany({
+        data: [
+          {
+            user_id: user.userId,
+            session_id: sessionId,
+            role: 'user',
+            content: question,
+            report_id: body?.report_id || null,
+            prescription_id: body?.prescription_id || null,
+            context_mode: 'personal',
+          },
+          {
+            user_id: user.userId,
+            session_id: sessionId,
+            role: 'assistant',
+            content: answerText,
+            report_id: body?.report_id || null,
+            prescription_id: body?.prescription_id || null,
+            sources: JSON.stringify(sources),
+            context_mode: contextMode,
+          },
+        ],
+      });
+    } catch (saveError) {
+      console.warn('[Next.js RAG] Failed to save chat history:', saveError.message);
+    }
 
     return new Response(JSON.stringify({
       ...data,
       sources,
       contextMode,
+      sessionId,
     }), {
       status: upstream.status,
       headers: { 'Content-Type': 'application/json' },

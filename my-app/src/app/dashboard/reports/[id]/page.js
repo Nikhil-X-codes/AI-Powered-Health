@@ -50,6 +50,7 @@ export default function ReportDetailPage({ params }) {
   const [selectedMetric, setSelectedMetric] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [trends, setTrends] = useState([]);
 
   const handleDelete = async () => {
     try {
@@ -80,6 +81,24 @@ export default function ReportDetailPage({ params }) {
   }, [fetchWithAuth, id, router, toast]);
 
   useEffect(() => { loadReport(); }, [loadReport]);
+
+  // Load trend data when report is loaded
+  useEffect(() => {
+    if (!report || !report.summary) return;
+    let cancelled = false;
+    const loadTrends = async () => {
+      try {
+        const data = await fetchWithAuth(`/api/v1/reports/${id}/trends`);
+        if (!cancelled && data?.trends) {
+          setTrends(data.trends);
+        }
+      } catch {
+        // Trends are optional — fail silently
+      }
+    };
+    void loadTrends();
+    return () => { cancelled = true; };
+  }, [report, id, fetchWithAuth]);
 
   const handleAnalyze = async () => {
     try {
@@ -259,6 +278,103 @@ export default function ReportDetailPage({ params }) {
           actionLabel="Ask AI"
           onAction={() => router.push('/chat')}
         />
+      )}
+
+      {/* Metric Trends */}
+      {trends.length > 0 && (
+        <section aria-label="Metric trends">
+          <div className="mb-4 flex items-center gap-2">
+            <TrendingUp className="h-5 w-5 text-blue-500" aria-hidden="true" />
+            <h2 className="text-lg font-semibold text-slate-900">Metric Trends</h2>
+            <span className="text-xs text-slate-500 ml-1">(across all your reports)</span>
+          </div>
+          <div className="grid gap-4 sm:grid-cols-1 lg:grid-cols-2">
+            {trends.map((trend) => {
+              const chartData = trend.points.map((p) => ({
+                date: new Date(p.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+                value: p.value,
+                status: p.status,
+                reportName: p.reportName || 'Report',
+                isCurrent: p.isCurrent,
+              }));
+              const metricLabel = (trend.metricName || 'Metric')
+                .replace(/[_-]+/g, ' ')
+                .replace(/\b\w/g, (l) => l.toUpperCase());
+              return (
+                <div
+                  key={trend.metricName}
+                  className="rounded-2xl border border-slate-100 bg-white p-5 shadow-sm"
+                >
+                  <p className="mb-3 text-sm font-semibold text-slate-900">{metricLabel}</p>
+                  <ResponsiveContainer width="100%" height={180}>
+                    <LineChart data={chartData} margin={{ top: 5, right: 20, bottom: 5, left: 10 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                      <XAxis
+                        dataKey="date"
+                        tick={{ fontSize: 11, fill: '#94a3b8' }}
+                        axisLine={{ stroke: '#e2e8f0' }}
+                        tickLine={false}
+                      />
+                      <YAxis
+                        tick={{ fontSize: 11, fill: '#94a3b8' }}
+                        axisLine={false}
+                        tickLine={false}
+                        domain={['auto', 'auto']}
+                      />
+                      <Tooltip
+                        contentStyle={{
+                          background: '#fff',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '12px',
+                          fontSize: '12px',
+                          boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                        }}
+                        formatter={(value, name, props) => [
+                          `${value} — ${props.payload.status || 'Unknown'}`,
+                          props.payload.reportName,
+                        ]}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="value"
+                        stroke="#3b82f6"
+                        strokeWidth={2}
+                        dot={(dotProps) => {
+                          const { cx, cy, payload } = dotProps;
+                          const color = payload.status === 'Normal'
+                            ? '#10b981'
+                            : payload.status === 'High'
+                              ? '#ef4444'
+                              : payload.status === 'Low'
+                                ? '#f59e0b'
+                                : '#6366f1';
+                          return (
+                            <circle
+                              key={`dot-${cx}-${cy}`}
+                              cx={cx}
+                              cy={cy}
+                              r={payload.isCurrent ? 6 : 4}
+                              fill={color}
+                              stroke="#fff"
+                              strokeWidth={2}
+                            />
+                          );
+                        }}
+                        activeDot={{ r: 7, strokeWidth: 2 }}
+                      />
+                    </LineChart>
+                  </ResponsiveContainer>
+                  <div className="mt-2 flex items-center gap-3 text-[10px] text-slate-400">
+                    <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-emerald-500" /> Normal</span>
+                    <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-rose-500" /> High</span>
+                    <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-amber-500" /> Low</span>
+                    <span className="flex items-center gap-1"><span className="inline-block h-2 w-2 rounded-full bg-indigo-500" /> Borderline</span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       <Modal

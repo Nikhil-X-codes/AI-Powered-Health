@@ -4,6 +4,7 @@ import {
   ArrowRight,
   BrainCircuit,
   FileText,
+  Heart,
   Mic,
   ShieldCheck,
   Sparkles,
@@ -47,7 +48,7 @@ const featureCards = [
 
 const workflow = [
   'Upload a report or prescription',
-  'OCR extracts text and values',
+  'Vision API extracts text and values',
   'AI explains the findings',
   'Embedded context powers chat',
   'Dashboard updates automatically',
@@ -63,11 +64,17 @@ export default function Home() {
     <main className="min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top_left,_#dceafe,_transparent_32%),radial-gradient(circle_at_top_right,_#fbe3d5,_transparent_28%),linear-gradient(135deg,_#f6f1e8_0%,_#ffffff_40%,_#eef5ff_100%)] text-slate-900">
       <div className="mx-auto flex w-full max-w-none flex-col gap-14 px-4 py-5 sm:px-6 lg:gap-16 lg:px-10 lg:py-8 2xl:px-14">
         <header className="flex flex-col gap-4 rounded-[2rem] border border-white/70 bg-white/75 px-5 py-4 shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur md:flex-row md:items-center md:justify-between md:px-6 lg:rounded-full">
-          <div>
-            <p className="text-[0.65rem] font-semibold uppercase tracking-[0.28em] text-slate-500 sm:text-xs">Health AI Platform</p>
-            <h1 className="max-w-2xl text-sm font-semibold leading-6 text-slate-900 sm:text-base lg:text-lg">
-              Medical reports, prescriptions, chat, and voice in one workflow.
-            </h1>
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-md">
+              <Heart className="h-5 w-5 text-white" />
+            </div>
+            <div>
+              <div className="flex items-center gap-1.5">
+                <span className="text-lg font-bold tracking-tight text-slate-900">medzee ai</span>
+                <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 uppercase tracking-wider">platform</span>
+              </div>
+              <p className="text-[10px] text-slate-500 font-medium">Medical Intelligence Suite</p>
+            </div>
           </div>
           <div className="flex flex-wrap gap-3">
             {ctaButtons.map((cta) => (
@@ -95,7 +102,7 @@ export default function Home() {
             </div>
             <div className="max-w-5xl space-y-5">
               <h2 className="max-w-4xl text-4xl font-semibold tracking-tight text-slate-950 sm:text-5xl lg:text-6xl xl:text-6xl 2xl:text-7xl">
-                Turn medical reports into clear answers you can act on.
+                Turn medical reports into <span className="bg-gradient-to-r from-emerald-600 via-teal-600 to-sky-600 bg-clip-text text-transparent">clear answers</span> you can act on.
               </h2>
               <p className="max-w-2xl text-sm leading-7 text-slate-600 sm:text-base sm:leading-8 lg:text-lg">
                 Upload reports or prescriptions, get instant extraction and plain-language explanations, and keep the results connected to chat, voice, and your dashboard.
@@ -105,23 +112,23 @@ export default function Home() {
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <Link
                 href="/auth/signup"
-                className="inline-flex w-full items-center justify-center rounded-full bg-slate-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-slate-700 sm:w-auto"
+                className="btn-gradient inline-flex w-full items-center justify-center rounded-full px-6 py-3.5 text-sm font-semibold text-white sm:w-auto shadow-lg shadow-emerald-600/20"
               >
                 Get started
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
               <Link
                 href="/chat"
-                className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
+                className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 shadow-sm hover:shadow sm:w-auto"
               >
                 Open AI chat
               </Link>
               <Link
                 href="/voice"
-                className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 sm:w-auto"
+                className="inline-flex w-full items-center justify-center rounded-full border border-slate-200 bg-white px-6 py-3.5 text-sm font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 shadow-sm hover:shadow sm:w-auto"
               >
                 Voice assistant
-                <Mic className="ml-2 h-4 w-4" />
+                <Mic className="ml-2 h-4 w-4 text-emerald-600" />
               </Link>
             </div>
 
@@ -218,7 +225,7 @@ export default function Home() {
               {[
                 'Login securely with JWT and protected routes.',
                 'Upload a report or prescription from the app.',
-                'Run OCR, analysis, and explanation automatically.',
+                'Run Vision API text extraction and explanation automatically.',
                 'Store embeddings so chat can reference the source.',
                 'Review trends and alerts in the dashboard.',
               ].map((item) => (
@@ -234,7 +241,7 @@ export default function Home() {
             <p className="text-[0.65rem] font-semibold uppercase tracking-[0.25em] text-slate-400 sm:text-xs">MVP scope</p>
             <h3 className="mt-2 text-xl font-semibold sm:text-2xl">Start small, keep the UX polished</h3>
             <p className="mt-4 text-sm leading-6 text-slate-300">
-              The home page now funnels users into the core MVP: authentication, report upload, OCR extraction, report simplification, dashboard, and the basic RAG chatbot.
+              The home page now funnels users into the core MVP: authentication, report upload, Vision API text extraction, report simplification, dashboard, and the RAG chatbot.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
               <Link

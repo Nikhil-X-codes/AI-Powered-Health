@@ -71,12 +71,12 @@ export default function DashboardLayout({ children }) {
         >
           {/* Logo */}
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-            <Link href="/dashboard" className="flex items-center gap-2.5 group" aria-label="Medgen.ai Home">
+            <Link href="/dashboard" className="flex items-center gap-2.5 group" aria-label="medzee ai Home">
               <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 transition group-hover:shadow-lg group-hover:shadow-emerald-200">
                 <Heart className="h-4.5 w-4.5 text-white" aria-hidden="true" />
               </div>
               <div>
-                <span className="text-base font-bold text-slate-900">Medgen.ai</span>
+                <span className="text-base font-bold tracking-tight text-slate-900">medzee ai</span>
               </div>
             </Link>
             <button
@@ -98,9 +98,9 @@ export default function DashboardLayout({ children }) {
                   key={item.href}
                   href={item.href}
                   onClick={() => setSidebarOpen(false)}
-                  className={`group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
+                  className={`group relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all ${
                     active
-                      ? 'bg-emerald-50 text-emerald-700 shadow-sm'
+                      ? 'bg-emerald-50/60 text-emerald-700 shadow-sm border-l-2 border-emerald-500 rounded-l-none'
                       : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
                   }`}
                   aria-current={active ? 'page' : undefined}
@@ -148,9 +148,9 @@ export default function DashboardLayout({ children }) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <Link href="/dashboard" className="flex items-center gap-2" aria-label="Medgen.ai Home">
+            <Link href="/dashboard" className="flex items-center gap-2" aria-label="medzee ai Home">
               <Heart className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-              <span className="text-sm font-bold text-slate-900">Medgen.ai</span>
+              <span className="text-sm font-bold tracking-tight text-slate-900">medzee ai</span>
             </Link>
             <button
               onClick={() => router.push('/dashboard')}

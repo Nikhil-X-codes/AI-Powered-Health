@@ -1,4 +1,3 @@
-import { uploadMiddleware } from './multer';
 
 /**
  * Parse multipart form data and extract file

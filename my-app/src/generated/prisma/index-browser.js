@@ -167,8 +167,13 @@ exports.Prisma.MedicinesScalarFieldEnum = {
 exports.Prisma.Chat_historyScalarFieldEnum = {
   id: 'id',
   user_id: 'user_id',
-  user_message: 'user_message',
-  ai_response: 'ai_response',
+  session_id: 'session_id',
+  role: 'role',
+  content: 'content',
+  report_id: 'report_id',
+  prescription_id: 'prescription_id',
+  sources: 'sources',
+  context_mode: 'context_mode',
   created_at: 'created_at'
 };
 

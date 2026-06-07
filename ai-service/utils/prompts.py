@@ -261,28 +261,26 @@ Format as JSON."""
 # MEDICAL REPORT ANALYSIS PROMPTS (NEW)
 # ============================================================================
 
-MEDICAL_REPORT_METRICS_PROMPT = """You are a medical report analyzer. Extract all measurable health metrics from the following OCR text and return STRICT JSON.
+MEDICAL_REPORT_METRICS_PROMPT = """You are a medical report analyzer. Extract ONLY the measurable health metrics that are explicitly written in the following OCR text.
 
-For each metric, provide:
-- metric_name: the test name (e.g., "hemoglobin", "glucose_fasting")
-- metric_value: the numeric value with unit (e.g., "11.2 g/dL")
+CRITICAL RULES:
+1. Extract ONLY lab values, test results, and measurements that appear in the text
+2. Do NOT invent, fabricate, or add any metric not explicitly present
+3. If a value is written but its unit is unclear, include the value with "unit unclear"
+4. If no measurable metrics are found, return an empty metrics array
+5. Use your medical knowledge to evaluate whether each found value is Normal, High, Low, or Borderline
+
+For each metric found, provide:
+- metric_name: the test name as written (e.g., "hemoglobin", "glucose_fasting")
+- metric_value: the numeric value with unit exactly as written (e.g., "11.2 g/dL")
 - status: one of ["Normal", "High", "Low", "Borderline"]
 - explanation: a simple 1-sentence explanation for a non-medical person
-
-Reference ranges to use:
-- Hemoglobin: 13.5-17.5 g/dL (male), 12.0-15.5 g/dL (female)
-- Glucose (Fasting): 70-100 mg/dL
-- Total Cholesterol: <200 mg/dL
-- LDL Cholesterol: <100 mg/dL
-- HDL Cholesterol: >40 mg/dL (male), >50 mg/dL (female)
-- Triglycerides: <150 mg/dL
-- Blood Pressure Systolic: <120 mmHg
-- Blood Pressure Diastolic: <80 mmHg
 
 OCR Text:
 {ocr_text}
 
 Return ONLY valid JSON. No markdown, no explanation outside JSON.
+If no metrics found, return: {{"metrics": [], "overall_summary": "No measurable metrics found in this document."}}
 Format:
 {{
   "metrics": [
@@ -301,38 +299,39 @@ Format:
 # PRESCRIPTION ANALYSIS PROMPTS (NEW)
 # ============================================================================
 
-PRESCRIPTION_EXPLAINER_PROMPT = """You are a prescription explainer for patients. Analyze the following OCR text from a doctor's prescription and extract all medicines with clear, simple explanations.
+PRESCRIPTION_EXPLAINER_PROMPT = """You are a prescription explainer for patients. Extract ONLY the medicines that are explicitly listed in the following OCR text from a doctor's prescription.
 
-For EACH medicine detected, provide:
-- name: generic or brand name (e.g., "Paracetamol", "Amoxicillin")
-- purpose: what condition it treats (1 sentence, simple language, no medical jargon)
-- dosage: exact amount and frequency (e.g., "500mg, twice daily")
-- usage_instructions: when/how to take (e.g., "Take after meals with water", "Take at bedtime")
-- side_effects: list 2-3 most common side effects patients should know about
+CRITICAL RULES:
+1. Extract ONLY medicines that are explicitly written in the prescription text
+2. Do NOT invent, fabricate, or add any medicine not present in the text
+3. If a medicine name is partially readable, include it with a note
+4. If no medicines can be identified, return an empty medicines array
+5. Extract dosage and frequency exactly as written, do not assume
+
+For EACH medicine found, provide:
+- name: generic or brand name as written
+- purpose: what condition it treats (1 sentence, simple language)
+- dosage: exact amount and frequency as written
+- usage_instructions: when/how to take if specified, otherwise "As directed by doctor"
+- side_effects: list 2-3 most common side effects
 
 OCR Text from Prescription:
 {ocr_text}
 
 Return ONLY valid JSON. No markdown, no explanation outside JSON.
+If no medicines found, return: {{"medicines": [], "pharmacy_notes": "No medicines could be identified from this prescription."}}
 Format:
 {{
   "medicines": [
     {{
-      "name": "Paracetamol",
-      "purpose": "Reduces fever and relieves mild to moderate pain",
-      "dosage": "500mg, twice daily",
-      "usage_instructions": "Take after meals with water",
-      "side_effects": "Stomach upset, rare allergic reactions"
-    }},
-    {{
-      "name": "Amoxicillin",
-      "purpose": "Treats bacterial infections like throat and ear infections",
-      "dosage": "250mg, three times daily",
-      "usage_instructions": "Take with or without food, complete the full course",
-      "side_effects": "Nausea, diarrhea, rash (tell doctor if allergic to penicillin)"
+      "name": "Medicine Name",
+      "purpose": "What it treats",
+      "dosage": "Amount and frequency",
+      "usage_instructions": "When and how to take",
+      "side_effects": "Common side effects"
     }}
   ],
-  "pharmacy_notes": "Any special instructions or warnings from the prescription"
+  "pharmacy_notes": "Any special instructions from the prescription"
 }}"""
 
 

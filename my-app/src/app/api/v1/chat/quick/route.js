@@ -1,4 +1,5 @@
 import { requireAuth } from '@/lib/api-auth';
+import { prisma } from '@/lib/prisma';
 
 const DEFAULT_FASTAPI_URL = 'http://127.0.0.1:8000';
 
@@ -9,7 +10,7 @@ function getFastApiBaseUrl() {
 }
 
 export async function POST(req) {
-  const { isValid } = requireAuth(req);
+  const { isValid, user } = requireAuth(req);
   if (!isValid) {
     return new Response(JSON.stringify({ error: 'Unauthorized' }), {
       status: 401,
@@ -19,6 +20,9 @@ export async function POST(req) {
 
   const body = await req.json();
   const question = body?.question;
+
+  // Get or generate session_id
+  const sessionId = body?.session_id || crypto.randomUUID();
 
   const searchParams = new URLSearchParams();
   if (question !== undefined) {
@@ -40,7 +44,36 @@ export async function POST(req) {
     }
 
     const data = await response.json();
-    return new Response(JSON.stringify(data), {
+    const answerText = data.answer || data.response || '';
+
+    // Save chat history (user message + AI response)
+    try {
+      await prisma.chat_history.createMany({
+        data: [
+          {
+            user_id: user.userId,
+            session_id: sessionId,
+            role: 'user',
+            content: String(question || ''),
+            context_mode: 'general',
+          },
+          {
+            user_id: user.userId,
+            session_id: sessionId,
+            role: 'assistant',
+            content: answerText,
+            context_mode: 'general',
+          },
+        ],
+      });
+    } catch (saveError) {
+      console.warn('[Next.js Quick] Failed to save chat history:', saveError.message);
+    }
+
+    return new Response(JSON.stringify({
+      ...data,
+      sessionId,
+    }), {
       status: response.status,
       headers: { 'Content-Type': 'application/json' },
     });

@@ -1,24 +1,24 @@
-# Medgen.ai
+# medzee ai
 
 > AI-powered healthcare assistance platform that simplifies complex medical language into understandable explanations.
 
 ## Project Overview
 
-Medgen.ai helps patients, elderly users, and non-medical individuals understand their medical reports and prescriptions without relying on unreliable internet sources. The platform uses image preprocessing, confidence-gated OCR, PaddleOCR fallback for handwriting, Large Language Models (LLM), and Retrieval-Augmented Generation (RAG) to provide accurate, personalized medical insights.
+medzee ai helps patients, elderly users, and non-medical individuals understand their medical reports and prescriptions without relying on unreliable internet sources. The platform uses image preprocessing, confidence-gated Google Cloud Vision API text extraction, Large Language Models (LLM), and Retrieval-Augmented Generation (RAG) to provide accurate, personalized medical insights.
 
 ### Core Capabilities
 
-- **Medical Report Analyzer** — Upload PDF or image-based medical reports; the system extracts text via OCR, analyzes values, and generates simple explanations with structured health metrics.
+- **Medical Report Analyzer** — Upload PDF or image-based medical reports; the system extracts text via the Google Cloud Vision API, analyzes values, and generates simple explanations with structured health metrics.
 - **Prescription Explainer** — Upload prescription images to detect medicine names, understand purpose, dosage, and side effects.
 - **Health Dashboard** — Visualize health metrics over time, track trends, and flag high/low values.
 - **AI Chat Assistant** — Ask medical questions grounded in your uploaded reports and medical knowledge via RAG.
 - **Voice Assistant** — Speech-to-text input and text-to-speech responses for accessibility.
 
-### OCR Quality Control
+### Vision API Quality Control
 
-- Images are preprocessed before OCR so shadows, blur, and tilt are reduced.
-- Low-confidence OCR is flagged instead of being silently stored as valid text.
-- Handwritten or low-quality prescriptions fall back to PaddleOCR.
+- Images are preprocessed before text extraction so shadows, blur, and tilt are reduced.
+- Extraction confidence is computed as the average of word-level confidence scores.
+- Low-confidence extractions (below 70%) are flagged to prevent using unverified text.
 - Only verified text is sent into report analysis, prescription explanation, and RAG.
 
 ### Target Users
@@ -33,10 +33,9 @@ Medgen.ai helps patients, elderly users, and non-medical individuals understand 
 ### Frontend
 | Technology | Purpose |
 |------------|---------|
-| **Next.js** | React framework (App Router / Pages Router) |
-| **TypeScript** | Type-safe development |
-| **Tailwind CSS** | Utility-first styling |
-| **ShadCN UI** | Accessible, composable UI components |
+| **Next.js 16** | React 19 framework (App Router) |
+| **JavaScript** | Development language |
+| **Tailwind CSS v4** | Utility-first styling with modern PostCSS pipeline |
 | **Axios** | HTTP client for API communication |
 | **React Query** | Server-state management |
 | **Recharts** | Health analytics & trend visualizations |
@@ -47,7 +46,7 @@ Medgen.ai helps patients, elderly users, and non-medical individuals understand 
 | Technology | Purpose |
 |------------|---------|
 | **Next.js App Router** | Backend REST endpoints |
-| **PostgreSQL (Neon)** | Relational database |
+| **PostgreSQL (Neon)** | Relational database for users, sessions, reports, and metrics |
 | **Prisma ORM** | Database schema management & querying |
 | **JWT (jsonwebtoken / jose)** | Stateless authentication |
 | **bcryptjs** | Password hashing (salt rounds: 10) |
@@ -60,14 +59,14 @@ Medgen.ai helps patients, elderly users, and non-medical individuals understand 
 |------------|---------|
 | **FastAPI** | High-performance Python API for AI workloads |
 | **LangChain** | LLM orchestration & prompt management |
-| **PaddleOCR** | Text extraction from PDFs and images |
+| **Google Cloud Vision API** | High-accuracy text extraction from PDFs and images |
 | **Groq API** | LLM inference (model: `llama-3.1-8b-instant`) |
 | **Sentence Transformers** | Embedding generation (`BAAI/bge-small-en`, `all-MiniLM-L6-v2`) |
 | **ChromaDB** | Vector database for RAG retrieval |
 | **Faster Whisper** | Speech-to-text transcription |
 | **Edge TTS** | Text-to-speech audio generation |
 
-**Deployment:** Render (initial) → RunPod (future scaling)
+**Deployment:** Render / RunPod
 
 ### File Storage
 | Platform | Stores |
@@ -104,8 +103,8 @@ Medgen.ai helps patients, elderly users, and non-medical individuals understand 
 │  │  FastAPI (AI Microservice)                                  │   │
 │  │                                                             │   │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │   │
-│  │  │  PaddleOCR  │  │  Groq API   │  │  SentenceTransformers│  │   │
-│  │  │  (OCR)      │  │  (LLM)      │  │  (Embeddings)        │  │   │
+│  │  │Google Vision│  │  Groq API   │  │  SentenceTransformers│  │   │
+│  │  │ (Vision API)│  │  (LLM)      │  │  (Embeddings)        │  │   │
 │  │  └─────────────┘  └─────────────┘  └─────────────────────┘  │   │
 │  │                                                             │   │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │   │
@@ -151,13 +150,13 @@ User clicks "Analyze"
     ↓
 POST /api/v1/reports/analyze/:id
     ↓
-Next.js API route sends Cloudinary URL to FastAPI /ocr
+Next.js API route sends Cloudinary URL to FastAPI /ocr (for Vision API extraction)
     ↓
-Preprocessing + EasyOCR confidence check
+Google Cloud Vision API text extraction & confidence evaluation
     ↓
-PaddleOCR fallback for handwriting or low-confidence scans
+Confidence rating check (flagged if below 70% threshold)
     ↓
-Prompt Template + OCR text → Groq Llama3
+Prompt Template + extracted text → Groq Llama3
     ↓
 Structured JSON (hemoglobin, glucose, etc.)
     ↓
@@ -176,7 +175,7 @@ Cloudinary → Prisma `prescriptions` table
     ↓
 POST /api/v1/prescriptions/explain/:id
     ↓
-FastAPI: OCR → Medicine Detection → LLM Explanation
+FastAPI: Vision API → Medicine Detection → LLM Explanation
     ↓
 Prisma inserts into `medicines` table
     ↓
@@ -282,7 +281,7 @@ Frontend: Refreshes overview list and routes back to overview page
 |-----------|--------------|
 | LLM Provider | Groq API |
 | Recommended Model | `llama-3.1-8b-instant` |
-| OCR | PaddleOCR |
+| Vision API | Google Cloud Vision API |
 | Embeddings | `BAAI/bge-small-en`, `all-MiniLM-L6-v2` |
 | Vector Database | ChromaDB |
 | Speech-to-Text | `faster-whisper` |
@@ -297,11 +296,11 @@ Frontend: Refreshes overview list and routes back to overview page
 - [x] Prescription upload (image)
 - [x] Cloudinary file storage
 - [x] PostgreSQL + Prisma ORM setup
-- [ ] OCR extraction & AI report simplification *(Phase 3–4)*
-- [ ] Prescription medicine detection & explanation *(Phase 5)*
-- [ ] Health Dashboard with visualizations *(Phase 6)*
-- [ ] RAG Chatbot *(Phase 7)*
-- [ ] Voice Assistant *(Phase 7)*
+- [x] Vision API text extraction & AI report simplification *(Phase 3–4)*
+- [x] Prescription medicine detection & explanation *(Phase 5)*
+- [x] Health Dashboard with visualizations *(Phase 6)*
+- [x] RAG Chatbot *(Phase 7)*
+- [x] Voice Assistant *(Phase 7)*
 
 ## Future Scope
 
