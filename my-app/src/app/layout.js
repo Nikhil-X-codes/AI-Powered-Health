@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata = {
-  title: "medzee ai — Understand Your Medical Reports",
+  title: "Medzee.ai — Understand Your Medical Reports",
   description:
     "AI-powered healthcare platform that simplifies complex medical language. Upload reports and prescriptions, track health trends, and chat with an AI assistant grounded in your data.",
   keywords: ["medical reports", "health dashboard", "AI health assistant", "prescription explainer"],

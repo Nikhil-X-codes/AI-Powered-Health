@@ -221,7 +221,7 @@ export async function GET(request) {
       fileUrl: prescription.file_url,
       createdAt: prescription.created_at,
       medicineCount: prescription._count.medicines,
-      explanationStatus: prescription._count.medicines > 0 ? 'Explained' : 'Pending',
+      explanationStatus: prescription.extracted_text !== null ? 'Explained' : 'Pending',
     }));
 
     const healthAlertsData = healthAlerts.map((metric) => ({
@@ -254,7 +254,7 @@ export async function GET(request) {
         recentPrescriptions: recentPrescriptionSummaries,
         healthAlerts: healthAlertsData,
       },
-      { status: 200 }
+      { status: 200, headers: { 'Cache-Control': 'no-store, max-age=0' } }
     );
   } catch (error) {
     console.error('Dashboard data error:', error);

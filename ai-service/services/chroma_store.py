@@ -5,7 +5,6 @@ Provides persistent medical knowledge base for RAG.
 
 import os
 import chromadb
-from chromadb.config import Settings
 from config import CHROMA_DATA_DIR, CHROMA_COLLECTION_NAME, CHROMA_DISTANCE_METRIC
 
 _chroma_client = None
@@ -116,7 +115,3 @@ def search(query_embeddings: list, n_results: int = 5, where: dict = None) -> di
     )
 
 
-def get_all_documents() -> dict:
-    """Get all documents from the collection."""
-    collection = get_collection()
-    return collection.get()

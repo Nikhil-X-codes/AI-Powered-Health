@@ -36,7 +36,7 @@ const DOT_COLORS = {
 export function StatusBadge({ status, showDot = false, className = '' }) {
   if (!status) return null;
 
-  const key = status.toLowerCase();
+  const key = String(status).toLowerCase();
   const classes = TONE_MAP[key] || TONE_MAP.neutral;
   const dotColor = DOT_COLORS[key] || DOT_COLORS.neutral;
 

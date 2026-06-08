@@ -76,16 +76,32 @@ async def analyze_medical_report(request: ReportAnalysisRequest):
         response = client.invoke([HumanMessage(content=prompt)])
         response_text = response.content
         
+        import re
         # Parse JSON response
         try:
+            cleaned = response_text.strip()
             # Clean up markdown code blocks if present
-            if "```json" in response_text:
-                response_text = response_text.split("```json")[1].split("```")[0]
-            elif "```" in response_text:
-                response_text = response_text.split("```")[1].split("```")[0]
+            if "```json" in cleaned:
+                cleaned = cleaned.split("```json")[1].split("```")[0]
+            elif "```" in cleaned:
+                cleaned = cleaned.split("```")[1].split("```")[0]
             
-            data = json.loads(response_text.strip())
+            cleaned = cleaned.strip()
+            
+            # Remove trailing commas
+            cleaned = re.sub(r',(\s*[}\]])', r'\1', cleaned)
+            
+            # Fallback to extract content between first { and last } if it has extra text
+            if not cleaned.startswith("{") or not cleaned.endswith("}"):
+                start_idx = cleaned.find("{")
+                end_idx = cleaned.rfind("}")
+                if start_idx != -1 and end_idx != -1:
+                    cleaned = cleaned[start_idx:end_idx+1]
+
+            data = json.loads(cleaned)
         except json.JSONDecodeError as e:
+            print(f"[Analyze] JSON parse failed: {e}")
+            print(f"[Analyze] Cleaned text was: {cleaned[:300]}...{cleaned[-300:]}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to parse LLM response as JSON: {str(e)}"

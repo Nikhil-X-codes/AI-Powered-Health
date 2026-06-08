@@ -34,13 +34,11 @@ WHISPER_MODEL = os.getenv("WHISPER_MODEL") or os.getenv("WHISPER_MODEL_SIZE") or
 WHISPER_DEVICE = os.getenv("WHISPER_DEVICE", "cpu")
 WHISPER_CACHE_DIR = os.getenv("WHISPER_CACHE_DIR", "./models_cache/whisper")
 
-UVICORN_RELOAD = os.getenv("UVICORN_RELOAD", "false").lower() == "true"
 
 # ── TTS Configuration ──
 TTS_VOICE = os.getenv("TTS_VOICE", "en-US-AriaNeural")
 
 # ── OCR Configuration ──
-OCR_LANGUAGE = os.getenv("OCR_LANGUAGE", "en")
 
 # ── CORS Configuration ──
 CORS_ORIGINS = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")

@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, use } from 'react';
+import { useEffect, useState, useCallback, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { useToast } from '@/components/ui/Toast';
@@ -43,6 +43,8 @@ export default function ReportDetailPage({ params }) {
   const router = useRouter();
   const fetchWithAuth = useAuthenticatedFetch();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   const [report, setReport] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -71,14 +73,14 @@ export default function ReportDetailPage({ params }) {
       setIsLoading(true);
       const data = await fetchWithAuth('/api/v1/reports');
       const found = (data.reports || []).find((r) => r.id === id);
-      if (!found) { toast.error('Report not found'); router.push('/dashboard/reports'); return; }
+      if (!found) { toastRef.current.error('Report not found'); router.push('/dashboard/reports'); return; }
       setReport(found);
     } catch {
-      toast.error('Failed to load report');
+      toastRef.current.error('Failed to load report');
     } finally {
       setIsLoading(false);
     }
-  }, [fetchWithAuth, id, router, toast]);
+  }, [fetchWithAuth, id, router]);
 
   useEffect(() => { loadReport(); }, [loadReport]);
 
@@ -103,7 +105,7 @@ export default function ReportDetailPage({ params }) {
   const handleAnalyze = async () => {
     try {
       setIsAnalyzing(true);
-      await fetchWithAuth(`/api/v1/reports/analyze/${id}`, { method: 'POST' });
+      await fetchWithAuth(`/api/v1/reports/analyze/${id}`, { method: 'POST', body: JSON.stringify({}) });
       toast.success('Report analyzed successfully');
       await loadReport();
     } catch (err) {

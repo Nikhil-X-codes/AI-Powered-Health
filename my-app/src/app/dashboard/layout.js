@@ -71,12 +71,12 @@ export default function DashboardLayout({ children }) {
         >
           {/* Logo */}
           <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-            <Link href="/dashboard" className="flex items-center gap-2.5 group" aria-label="medzee ai Home">
-              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 transition group-hover:shadow-lg group-hover:shadow-emerald-200">
-                <Heart className="h-4.5 w-4.5 text-white" aria-hidden="true" />
+            <Link href="/dashboard" className="flex items-center gap-2.5 group" aria-label="Medzee.ai Home">
+              <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-sm transition-transform group-hover:scale-105">
+                <Heart className="h-5 w-5 text-white" aria-hidden="true" />
               </div>
-              <div>
-                <span className="text-base font-bold tracking-tight text-slate-900">medzee ai</span>
+              <div className="flex flex-col">
+                <span className="text-base font-bold tracking-tight text-slate-900">Medzee.ai</span>
               </div>
             </Link>
             <button
@@ -148,9 +148,9 @@ export default function DashboardLayout({ children }) {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <Link href="/dashboard" className="flex items-center gap-2" aria-label="medzee ai Home">
+            <Link href="/dashboard" className="flex items-center gap-2" aria-label="Medzee.ai Home">
               <Heart className="h-5 w-5 text-emerald-600" aria-hidden="true" />
-              <span className="text-sm font-bold tracking-tight text-slate-900">medzee ai</span>
+              <span className="text-sm font-bold tracking-tight text-slate-900">Medzee.ai</span>
             </Link>
             <button
               onClick={() => router.push('/dashboard')}

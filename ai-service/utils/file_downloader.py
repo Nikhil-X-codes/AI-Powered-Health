@@ -7,7 +7,6 @@ Supports images and PDFs with automatic conversion.
 import os
 import tempfile
 import requests
-from pathlib import Path
 from typing import Tuple, Optional
 from PIL import Image
 import io

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/api-auth';
 
+export const dynamic = 'force-dynamic';
 function derivePrescriptionDisplayName(fileUrl, createdAt) {
   if (fileUrl) {
     try {
@@ -68,7 +69,10 @@ export async function GET(request) {
         })),
         total: prescriptions.length,
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: { 'Cache-Control': 'no-store, max-age=0' },
+      }
     );
   } catch (error) {
     return NextResponse.json(

@@ -3,8 +3,6 @@ Edge TTS Engine
 Generates speech audio from text.
 """
 
-import asyncio
-
 
 async def synthesize_speech(text: str, voice: str) -> bytes:
 	"""

@@ -364,7 +364,7 @@ export default function DashboardPage() {
     try {
       setAnalyzingReportId(reportId);
       setMessage('Analyzing report...');
-      await fetchWithAuth(`/api/v1/reports/analyze/${reportId}`, { method: 'POST' });
+      await fetchWithAuth(`/api/v1/reports/analyze/${reportId}`, { method: 'POST', body: JSON.stringify({}) });
       setMessage('Report analyzed successfully.');
       await fetchDashboard();
     } catch (err) {
@@ -378,7 +378,7 @@ export default function DashboardPage() {
     try {
       setExplainingPrescriptionId(prescriptionId);
       setMessage('Explaining prescription...');
-      await fetchWithAuth(`/api/v1/prescriptions/explain/${prescriptionId}`, { method: 'POST' });
+      await fetchWithAuth(`/api/v1/prescriptions/explain/${prescriptionId}`, { method: 'POST', body: JSON.stringify({}) });
       setMessage('Prescription explained successfully.');
       await fetchDashboard();
     } catch (err) {
@@ -525,7 +525,7 @@ export default function DashboardPage() {
 
         {hasEmptyDashboard && (
           <EmptyState
-            title="Welcome to medzee ai!"
+            title="Welcome to Medzee.ai!"
             description="Upload your first medical report or prescription to start tracking health metrics, trends, and get AI-powered explanations."
             actionLabel="Upload now"
             onAction={scrollToUpload}

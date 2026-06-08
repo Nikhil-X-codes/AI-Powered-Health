@@ -70,7 +70,7 @@ export default function Home() {
             </div>
             <div>
               <div className="flex items-center gap-1.5">
-                <span className="text-lg font-bold tracking-tight text-slate-900">medzee ai</span>
+                <span className="text-lg font-bold tracking-tight text-slate-900">Medzee.ai</span>
                 <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[9px] font-semibold text-emerald-700 uppercase tracking-wider">platform</span>
               </div>
               <p className="text-[10px] text-slate-500 font-medium">Medical Intelligence Suite</p>

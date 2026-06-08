@@ -120,11 +120,6 @@ class TextChunker:
         Handles common abbreviations and medical terminology.
         """
         # Medical abbreviations that shouldn't end sentences
-        medical_abbrevs = {
-            'Dr', 'Mr', 'Mrs', 'Ms', 'Prof', 'mg', 'mL', 'IV', 'IM',
-            'vs', 'e.g', 'i.e', 'etc', 'Co', 'Inc', 'Ltd', 'pH'
-        }
-        
         # Replace sentence endings with marker
         text = text.replace('?', '|QMARK|')
         text = text.replace('!', '|EXMARK|')

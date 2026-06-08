@@ -15,7 +15,7 @@ import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { useToast } from '@/components/ui/Toast';
 import {
   ArrowLeft, Heart, Plus, MessagesSquare, Volume2,
-  Clock, FileText, Pill, PanelLeftClose, PanelLeftOpen,
+  Clock, FileText, Pill, PanelLeftClose, PanelLeftOpen, Trash2,
 } from 'lucide-react';
 
 const QUICK_PROMPTS = [
@@ -281,6 +281,24 @@ function ChatContent() {
     setActiveSessionId(null);
   };
 
+  const handleDeleteSession = async (e, sessionId) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this chat conversation?')) return;
+    
+    try {
+      await fetchWithAuth(`/api/v1/chat/history?session_id=${sessionId}`, {
+        method: 'DELETE',
+      });
+      if (activeSessionId === sessionId) {
+        handleNewChat();
+      }
+      void loadSessions();
+      toast.success('Conversation deleted');
+    } catch (err) {
+      toast.error('Failed to delete conversation');
+    }
+  };
+
   const handleSessionClick = (session) => {
     void loadSessionMessages(session.sessionId);
     // On mobile, close sidebar after selecting
@@ -452,6 +470,14 @@ function ChatContent() {
                                 )}
                               </div>
                             </div>
+                            <div
+                              onClick={(e) => handleDeleteSession(e, session.sessionId)}
+                              className="opacity-0 group-hover:opacity-100 p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-all shrink-0"
+                              title="Delete conversation"
+                              aria-label="Delete chat"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </div>
                           </button>
                         );
                       })}
@@ -499,7 +525,7 @@ function ChatContent() {
                     <Heart className="h-4 w-4 text-white" aria-hidden="true" />
                   </div>
                   <div>
-                    <h1 className="text-sm font-bold text-slate-900">AI Health Assistant</h1>
+                    <h1 className="text-sm font-bold text-slate-900">Medzee.ai</h1>
                     <p className="text-[10px] text-emerald-600 font-medium">
                       RAG-powered • Grounded in your data{selectedDocument ? ` • ${selectedDocumentLabel}` : ''}
                     </p>

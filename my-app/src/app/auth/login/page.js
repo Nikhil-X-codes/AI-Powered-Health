@@ -50,7 +50,7 @@ export default function LoginPage() {
   return (
     <AuthLayout
       heading="Welcome back"
-      subheading="Sign in to your medzee ai account"
+      subheading="Sign in to your Medzee.ai account"
     >
       <form
         onSubmit={handleSubmit}

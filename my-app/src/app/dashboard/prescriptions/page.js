@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { useToast } from '@/components/ui/Toast';
@@ -23,6 +23,8 @@ export default function PrescriptionsPage() {
   const router = useRouter();
   const fetchWithAuth = useAuthenticatedFetch();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   const [prescriptions, setPrescriptions] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -58,11 +60,11 @@ export default function PrescriptionsPage() {
       const data = await fetchWithAuth('/api/v1/prescriptions');
       setPrescriptions(data.prescriptions || []);
     } catch {
-      toast.error('Failed to load prescriptions');
+      toastRef.current.error('Failed to load prescriptions');
     } finally {
       setIsLoading(false);
     }
-  }, [fetchWithAuth, toast]);
+  }, [fetchWithAuth]);
 
   useEffect(() => { loadPrescriptions(); }, [loadPrescriptions]);
 
@@ -122,7 +124,7 @@ export default function PrescriptionsPage() {
   const handleExplain = async (prescriptionId) => {
     try {
       setExplainingId(prescriptionId);
-      await fetchWithAuth(`/api/v1/prescriptions/explain/${prescriptionId}`, { method: 'POST' });
+      await fetchWithAuth(`/api/v1/prescriptions/explain/${prescriptionId}`, { method: 'POST', body: JSON.stringify({}) });
       toast.success('Prescription explained — ready for chat');
       await loadPrescriptions();
     } catch (err) {
@@ -179,7 +181,7 @@ export default function PrescriptionsPage() {
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {prescriptions.map((rx) => {
-            const isExplained = (rx.medicines?.length || 0) > 0;
+            const isExplained = rx.extracted_text !== null;
             const medicineCount = rx.medicines?.length || 0;
             return (
               <article

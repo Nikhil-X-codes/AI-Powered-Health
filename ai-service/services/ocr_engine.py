@@ -87,10 +87,6 @@ def extract_text_hybrid(image_path: str) -> dict:
         raise RuntimeError(f"Google Vision API failure: {str(e)}")
 
 
-def extract_text_best(image_path: str) -> dict:
-    """Alias for extract_text_hybrid for backward compatibility."""
-    return extract_text_hybrid(image_path)
-
 
 def extract_text(image_path: str) -> str:
     """Extract and return text string from image path."""

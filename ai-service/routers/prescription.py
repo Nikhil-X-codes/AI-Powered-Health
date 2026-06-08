@@ -85,6 +85,7 @@ async def explain_prescription(request: PrescriptionExplainRequest):
         response_text = response.content
         print(f"[Explain] Raw LLM response ({len(response_text)} chars): {response_text[:200]}...")
         
+        import re
         # Parse JSON response
         try:
             # Clean up markdown code blocks if present
@@ -97,10 +98,20 @@ async def explain_prescription(request: PrescriptionExplainRequest):
             # Strip leading/trailing whitespace and any stray text
             cleaned = cleaned.strip()
             
+            # Remove trailing commas
+            cleaned = re.sub(r',(\s*[}\]])', r'\1', cleaned)
+
+            # Fallback to extract content between first { and last } if it has extra text
+            if not cleaned.startswith("{") or not cleaned.endswith("}"):
+                start_idx = cleaned.find("{")
+                end_idx = cleaned.rfind("}")
+                if start_idx != -1 and end_idx != -1:
+                    cleaned = cleaned[start_idx:end_idx+1]
+            
             data = json.loads(cleaned)
         except json.JSONDecodeError as e:
             print(f"[Explain] JSON parse failed: {e}")
-            print(f"[Explain] Cleaned text was: {cleaned[:300]}")
+            print(f"[Explain] Cleaned text was: {cleaned[:300]}...{cleaned[-300:]}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Failed to parse LLM response as JSON: {str(e)}"

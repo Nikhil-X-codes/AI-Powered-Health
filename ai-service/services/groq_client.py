@@ -17,8 +17,9 @@ def init_groq_client() -> ChatGroq:
             api_key=GROQ_API_KEY,
             model_name=GROQ_MODEL,
             temperature=0.7,
+            max_tokens=4096,
         )
-        print(f"[OK] Groq client initialized with model: {GROQ_MODEL}")
+        print(f"[OK] Groq client initialized with model: {GROQ_MODEL} and max_tokens=4096")
     return _groq_client
 
 

@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireAuth } from '@/lib/api-auth';
 
+export const dynamic = 'force-dynamic';
 export async function GET(request) {
   try {
     const { isValid, user } = requireAuth(request);
@@ -40,7 +41,10 @@ export async function GET(request) {
         reports,
         total: reports.length,
       },
-      { status: 200 }
+      {
+        status: 200,
+        headers: { 'Cache-Control': 'no-store, max-age=0' },
+      }
     );
   } catch (error) {
     return NextResponse.json(

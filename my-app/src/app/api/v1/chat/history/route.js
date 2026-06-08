@@ -120,3 +120,32 @@ export async function GET(request) {
     );
   }
 }
+
+export async function DELETE(request) {
+  try {
+    const { isValid, user } = requireAuth(request);
+
+    if (!isValid) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const url = new URL(request.url);
+    const sessionId = url.searchParams.get('session_id');
+
+    if (!sessionId) {
+      return NextResponse.json({ error: 'session_id is required' }, { status: 400 });
+    }
+
+    await prisma.chat_history.deleteMany({
+      where: {
+        user_id: user.userId,
+        session_id: sessionId,
+      },
+    });
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error) {
+    console.error('Failed to delete chat session:', error);
+    return NextResponse.json({ error: 'Failed to delete chat session' }, { status: 500 });
+  }
+}

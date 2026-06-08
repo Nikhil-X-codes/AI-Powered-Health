@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, use } from 'react';
+import { useEffect, useState, useCallback, use, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { useToast } from '@/components/ui/Toast';
@@ -94,6 +94,8 @@ export default function PrescriptionDetailPage({ params }) {
   const router = useRouter();
   const fetchWithAuth = useAuthenticatedFetch();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   const [prescription, setPrescription] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -120,21 +122,21 @@ export default function PrescriptionDetailPage({ params }) {
       setIsLoading(true);
       const data = await fetchWithAuth('/api/v1/prescriptions');
       const found = (data.prescriptions || []).find((p) => p.id === id);
-      if (!found) { toast.error('Prescription not found'); router.push('/dashboard/prescriptions'); return; }
+      if (!found) { toastRef.current.error('Prescription not found'); router.push('/dashboard/prescriptions'); return; }
       setPrescription(found);
     } catch {
-      toast.error('Failed to load prescription');
+      toastRef.current.error('Failed to load prescription');
     } finally {
       setIsLoading(false);
     }
-  }, [fetchWithAuth, id, router, toast]);
+  }, [fetchWithAuth, id, router]);
 
   useEffect(() => { loadPrescription(); }, [loadPrescription]);
 
   const handleExplain = async () => {
     try {
       setIsExplaining(true);
-      await fetchWithAuth(`/api/v1/prescriptions/explain/${id}`, { method: 'POST' });
+      await fetchWithAuth(`/api/v1/prescriptions/explain/${id}`, { method: 'POST', body: JSON.stringify({}) });
       toast.success('Prescription explained — opening chat');
       router.push(`/chat?prescription_id=${id}`);
     } catch (err) {
@@ -157,7 +159,7 @@ export default function PrescriptionDetailPage({ params }) {
   if (!prescription) return null;
 
   const medicines = prescription.medicines || [];
-  const isExplained = medicines.length > 0;
+  const isExplained = prescription.extracted_text !== null;
 
   return (
     <div className="mx-auto max-w-5xl space-y-6 px-4 py-6 sm:px-6">
@@ -248,7 +250,17 @@ export default function PrescriptionDetailPage({ params }) {
             ))}
           </div>
         </section>
-      ) : isExplained ? null : (
+      ) : isExplained ? (
+        <div className="rounded-2xl border border-slate-200 bg-slate-50 p-8 text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100">
+            <Pill className="h-6 w-6 text-slate-400" aria-hidden="true" />
+          </div>
+          <p className="text-sm font-semibold text-slate-900">No medicines identified</p>
+          <p className="text-xs text-slate-500 mt-1.5 max-w-sm mx-auto">
+            The AI analyzed the prescription image but could not identify any specific medications. Please ensure the image is clear or ask the AI directly for clarification.
+          </p>
+        </div>
+      ) : (
         <EmptyState
           illustration="prescription"
           title="Not yet explained"

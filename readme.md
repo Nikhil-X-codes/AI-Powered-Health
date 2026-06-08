@@ -1,10 +1,10 @@
-# medzee ai
+# Medzee.ai
 
 > AI-powered healthcare assistance platform that simplifies complex medical language into understandable explanations.
 
 ## Project Overview
 
-medzee ai helps patients, elderly users, and non-medical individuals understand their medical reports and prescriptions without relying on unreliable internet sources. The platform uses image preprocessing, confidence-gated Google Cloud Vision API text extraction, Large Language Models (LLM), and Retrieval-Augmented Generation (RAG) to provide accurate, personalized medical insights.
+Medzee.ai helps patients, elderly users, and non-medical individuals understand their medical reports and prescriptions without relying on unreliable internet sources. The platform uses image preprocessing, confidence-gated Google Cloud Vision API text extraction, Large Language Models (LLM), and Retrieval-Augmented Generation (RAG) to provide accurate, personalized medical insights.
 
 ### Core Capabilities
 
@@ -12,6 +12,7 @@ medzee ai helps patients, elderly users, and non-medical individuals understand 
 - **Prescription Explainer** — Upload prescription images to detect medicine names, understand purpose, dosage, and side effects.
 - **Health Dashboard** — Visualize health metrics over time, track trends, and flag high/low values.
 - **AI Chat Assistant** — Ask medical questions grounded in your uploaded reports and medical knowledge via RAG.
+- **Chat History & Management** — View past conversations and delete chat sessions.
 - **Voice Assistant** — Speech-to-text input and text-to-speech responses for accessibility.
 
 ### Vision API Quality Control
@@ -33,11 +34,11 @@ medzee ai helps patients, elderly users, and non-medical individuals understand 
 ### Frontend
 | Technology | Purpose |
 |------------|---------|
-| **Next.js 16** | React 19 framework (App Router) |
+| **Next.js 16.2** | React 19 framework (App Router) |
 | **JavaScript** | Development language |
 | **Tailwind CSS v4** | Utility-first styling with modern PostCSS pipeline |
-| **Axios** | HTTP client for API communication |
-| **React Query** | Server-state management |
+| **Native Fetch & Axios** | HTTP clients for API communication |
+| **Lucide React** | Modern, consistent icon library |
 | **Recharts** | Health analytics & trend visualizations |
 
 **Deployment:** Vercel
@@ -138,7 +139,7 @@ medzee ai helps patients, elderly users, and non-medical individuals understand 
 
 ### 1. Medical Report Analysis
 ```
-User uploads report image/PDF
+User uploads report image
     ↓
 Next.js → POST /api/v1/reports/upload
     ↓
@@ -248,33 +249,6 @@ Frontend: Refreshes overview list and routes back to overview page
 
 ---
 
-## API Overview
-
-| Method | Endpoint | Auth | Description |
-|--------|----------|------|-------------|
-| POST | `/auth/register` | No | Register new user |
-| POST | `/auth/login` | No | Login user |
-| POST | `/reports/upload` | Yes | Upload report file |
-| POST | `/reports/analyze/:id` | Yes | Analyze uploaded report |
-| GET | `/reports` | Yes | Get all user reports |
-| POST | `/prescriptions/upload` | Yes | Upload prescription |
-| POST | `/prescriptions/explain/:id` | Yes | Explain prescription |
-| POST | `/chat` | Yes | AI chat message |
-| DELETE | `/reports/:id` | Yes | Delete report and associated health metrics |
-| DELETE | `/prescriptions/:id` | Yes | Delete prescription and associated medicines |
-
----
-
-## Authentication
-
-- **JWT-only** authentication (no refresh token rotation)
-- **bcrypt** password hashing with salt rounds = 10
-- Token stored in browser `localStorage`
-- Attached to every request via `Authorization: Bearer <token>` header
-- Middleware-based route protection on both frontend and backend
-
----
-
 ## Key AI Models & Tools
 
 | Component | Tool / Model |
@@ -282,25 +256,12 @@ Frontend: Refreshes overview list and routes back to overview page
 | LLM Provider | Groq API |
 | Recommended Model | `llama-3.1-8b-instant` |
 | Vision API | Google Cloud Vision API |
-| Embeddings | `BAAI/bge-small-en`, `all-MiniLM-L6-v2` |
+| Embeddings | `BAAI/bge-small-en` |
 | Vector Database | ChromaDB |
 | Speech-to-Text | `faster-whisper` |
 | Text-to-Speech | Edge TTS |
 
 ---
-
-## MVP Scope
-
-- [x] Authentication (JWT, login/signup)
-- [x] Report upload (PDF/image)
-- [x] Prescription upload (image)
-- [x] Cloudinary file storage
-- [x] PostgreSQL + Prisma ORM setup
-- [x] Vision API text extraction & AI report simplification *(Phase 3–4)*
-- [x] Prescription medicine detection & explanation *(Phase 5)*
-- [x] Health Dashboard with visualizations *(Phase 6)*
-- [x] RAG Chatbot *(Phase 7)*
-- [x] Voice Assistant *(Phase 7)*
 
 ## Future Scope
 
@@ -313,15 +274,7 @@ Frontend: Refreshes overview list and routes back to overview page
 
 ---
 
-## Non-Functional Requirements
 
-| Category | Requirement |
-|----------|-------------|
-| **Performance** | Response under 5 seconds for most operations |
-| **Security** | JWT authentication, password hashing, protected APIs |
-| **Scalability** | Separate AI microservice, modular architecture |
-
----
 ## Getting Started
 
 ### Prerequisites

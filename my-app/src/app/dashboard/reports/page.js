@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthenticatedFetch } from '@/hooks/useAuthenticatedFetch';
 import { useToast } from '@/components/ui/Toast';
@@ -23,6 +23,8 @@ export default function ReportsPage() {
   const router = useRouter();
   const fetchWithAuth = useAuthenticatedFetch();
   const toast = useToast();
+  const toastRef = useRef(toast);
+  toastRef.current = toast;
 
   const [reports, setReports] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -61,11 +63,11 @@ export default function ReportsPage() {
       const data = await fetchWithAuth('/api/v1/reports');
       setReports(data.reports || []);
     } catch {
-      toast.error('Failed to load reports');
+      toastRef.current.error('Failed to load reports');
     } finally {
       setIsLoading(false);
     }
-  }, [fetchWithAuth, toast]);
+  }, [fetchWithAuth]);
 
   useEffect(() => { loadReports(); }, [loadReports]);
 
@@ -127,7 +129,7 @@ export default function ReportsPage() {
   const handleAnalyze = async (id) => {
     try {
       setAnalyzingId(id);
-      await fetchWithAuth(`/api/v1/reports/analyze/${id}`, { method: 'POST' });
+      await fetchWithAuth(`/api/v1/reports/analyze/${id}`, { method: 'POST', body: JSON.stringify({}) });
       toast.success('Report analyzed successfully');
       await loadReports();
     } catch (err) {
@@ -221,61 +223,75 @@ export default function ReportsPage() {
             return (
               <article
                 key={report.id}
-                className="group rounded-2xl border border-slate-100 bg-white p-5 shadow-sm transition hover:shadow-md hover:-translate-y-0.5 cursor-pointer"
+                className="group rounded-2xl border border-slate-100 bg-white shadow-sm transition hover:shadow-md hover:-translate-y-0.5 overflow-hidden cursor-pointer"
                 onClick={() => router.push(`/dashboard/reports/${report.id}`)}
                 role="button"
                 tabIndex={0}
                 aria-label={`${report.report_name || 'Untitled report'} — ${isAnalyzed ? 'Analyzed' : 'Pending'} — ${metricCount} metrics`}
                 onKeyDown={(e) => { if (e.key === 'Enter') router.push(`/dashboard/reports/${report.id}`); }}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 transition group-hover:bg-blue-100">
-                    <FileText className="h-5 w-5 text-blue-500" aria-hidden="true" />
+                {/* File thumbnail */}
+                {report.file_url && report.file_url.match(/\.(jpg|jpeg|png|gif|webp)/i) ? (
+                  <div className="h-36 bg-slate-100 overflow-hidden">
+                    <img
+                      src={report.file_url}
+                      alt={`Preview of ${report.report_name || 'medical report'}`}
+                      className="h-full w-full object-cover transition group-hover:scale-105"
+                    />
                   </div>
-                  <StatusBadge status={isAnalyzed ? 'Analyzed' : 'Pending'} showDot />
-                </div>
-                <h3 className="mt-3 text-sm font-semibold text-slate-900 truncate">
-                  {report.report_name || 'Untitled Report'}
-                </h3>
-                <div className="mt-1.5 flex items-center gap-3 text-xs text-slate-500">
-                  <span className="flex items-center gap-1">
-                    <Calendar className="h-3 w-3" aria-hidden="true" />
-                    {formatDate(report.created_at)}
-                  </span>
-                  <span>{metricCount} metric{metricCount !== 1 ? 's' : ''}</span>
-                </div>
-                <div className="mt-4 flex items-center gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      isAnalyzed ? router.push(`/dashboard/reports/${report.id}`) : handleAnalyze(report.id);
-                    }}
-                    disabled={analyzingId === report.id || isDeletingId === report.id}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
-                    aria-label={isAnalyzed ? `View analysis for ${report.report_name || 'report'}` : `Analyze ${report.report_name || 'report'}`}
-                  >
-                    {analyzingId === report.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                    ) : (
-                      <ScanSearch className="h-3.5 w-3.5" aria-hidden="true" />
-                    )}
-                    {isAnalyzed ? 'View Analysis' : 'Analyze Report'}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setReportToDelete(report);
-                    }}
-                    disabled={analyzingId === report.id || isDeletingId === report.id}
-                    className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100 hover:border-rose-300 disabled:opacity-50"
-                    aria-label={`Delete ${report.report_name || 'report'}`}
-                  >
-                    {isDeletingId === report.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
-                    )}
-                  </button>
+                ) : (
+                  <div className="flex h-36 items-center justify-center bg-gradient-to-br from-blue-50 to-sky-50">
+                    <FileText className="h-10 w-10 text-blue-300" aria-hidden="true" />
+                  </div>
+                )}
+
+                <div className="p-5">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <h3 className="text-sm font-semibold text-slate-900 truncate">
+                      {report.report_name || 'Untitled Report'}
+                    </h3>
+                    <StatusBadge status={isAnalyzed ? 'Analyzed' : 'Pending'} showDot />
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <span className="flex items-center gap-1">
+                      <Calendar className="h-3 w-3" aria-hidden="true" />
+                      {formatDate(report.created_at)}
+                    </span>
+                    <span>{metricCount} metric{metricCount !== 1 ? 's' : ''}</span>
+                  </div>
+                  <div className="mt-4 flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        isAnalyzed ? router.push(`/dashboard/reports/${report.id}`) : handleAnalyze(report.id);
+                      }}
+                      disabled={analyzingId === report.id || isDeletingId === report.id}
+                      className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-slate-900 px-3 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 disabled:opacity-50"
+                      aria-label={isAnalyzed ? `View analysis for ${report.report_name || 'report'}` : `Analyze ${report.report_name || 'report'}`}
+                    >
+                      {analyzingId === report.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <ScanSearch className="h-3.5 w-3.5" aria-hidden="true" />
+                      )}
+                      {isAnalyzed ? 'View Analysis' : 'Analyze Report'}
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setReportToDelete(report);
+                      }}
+                      disabled={analyzingId === report.id || isDeletingId === report.id}
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl border border-rose-200 bg-rose-50 text-rose-600 transition hover:bg-rose-100 hover:border-rose-300 disabled:opacity-50"
+                      aria-label={`Delete ${report.report_name || 'report'}`}
+                    >
+                      {isDeletingId === report.id ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
+                      ) : (
+                        <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                      )}
+                    </button>
+                  </div>
                 </div>
               </article>
             );
