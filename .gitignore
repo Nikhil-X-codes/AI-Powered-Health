@@ -1,0 +1,26 @@
+# Ignore credentials at repo root AND in ai-service
+google-credentials.json
+ai-service/google-credentials.json
+
+# Ignore env files
+.env
+.env.local
+.env.production
+ai-service/.env
+ai-service/.env.local
+
+# Ignore Python cache
+__pycache__/
+*.pyc
+ai-service/__pycache__/
+ai-service/venv/
+
+# Ignore node_modules
+my-app/node_modules/
+my-app/.next/
+
+# Ignore local DBs
+chroma_db/
+chroma_data/
+ai-service/chroma_db/
+ai-service/chroma_data/

@@ -4,6 +4,8 @@ services:
     runtime: docker
     plan: free
     branch: main
+    rootDir: ai-service
+    dockerfilePath: ./Dockerfile
     envVars:
       - key: ENVIRONMENT
         value: production
@@ -12,7 +14,7 @@ services:
       - key: AI_SERVICE_PORT
         value: 8000
       - key: GROQ_API_KEY
-        sync: false  # Will set in Render dashboard
+        sync: false
       - key: GROQ_MODEL
         value: llama-3.1-8b-instant
       - key: EMBEDDING_MODEL
