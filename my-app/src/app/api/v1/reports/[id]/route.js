@@ -94,7 +94,11 @@ export async function DELETE(request, { params }) {
       console.warn('Failed to delete report embeddings from FastAPI:', fastApiError.message);
     }
 
-    // 3. Delete from DB (foreign keys will cascade and delete associated health_metrics)
+    // 3. Delete from DB (foreign keys will cascade, but we explicitly delete chat history just in case)
+    await prisma.chat_history.deleteMany({
+      where: { report_id: id },
+    });
+    
     await prisma.reports.delete({
       where: { id },
     });

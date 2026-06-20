@@ -40,10 +40,12 @@ def init_chroma() -> chromadb.Collection:
 
 
 def get_collection() -> chromadb.Collection:
-    """Get the existing ChromaDB collection."""
+    """Get the existing ChromaDB collection, initializing it if necessary."""
+    global _collection
     if _collection is None:
-        raise RuntimeError("ChromaDB not initialized. Did you start the server?")
+        init_chroma()
     return _collection
+
 
 
 def add_documents(

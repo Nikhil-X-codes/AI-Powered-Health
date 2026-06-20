@@ -149,16 +149,9 @@ export default function DashboardLayout({ children }) {
               <Menu className="h-5 w-5" />
             </button>
             <Link href="/dashboard" className="flex items-center gap-2" aria-label="Medzee.ai Home">
-              <Heart className="h-5 w-5 text-emerald-600" aria-hidden="true" />
               <span className="text-sm font-bold tracking-tight text-slate-900">Medzee.ai</span>
             </Link>
-            <button
-              onClick={() => router.push('/dashboard')}
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-50"
-              aria-label="User profile"
-            >
-              <User className="h-4 w-4 text-emerald-600" aria-hidden="true" />
-            </button>
+            <div className="w-8" aria-hidden="true" />
           </header>
 
           {/* Page content */}

@@ -4,26 +4,28 @@ Loads the transformer model once at startup.
 Used for RAG embeddings and semantic search.
 """
 
-from sentence_transformers import SentenceTransformer
 from config import EMBEDDER_MODEL
 
-_embedder_model: SentenceTransformer = None
+_embedder_model = None
 
 
-def init_embedder() -> SentenceTransformer:
+def init_embedder():
     """Initialize and return the embedder model."""
     global _embedder_model
+    from sentence_transformers import SentenceTransformer
     if _embedder_model is None:
         _embedder_model = SentenceTransformer(EMBEDDER_MODEL)
         print(f"[OK] Embedder model initialized: {EMBEDDER_MODEL}")
     return _embedder_model
 
 
-def get_embedder() -> SentenceTransformer:
-    """Get the existing embedder model."""
+def get_embedder():
+    """Get the existing embedder model, initializing it if necessary."""
+    global _embedder_model
     if _embedder_model is None:
-        raise RuntimeError("Embedder not initialized. Did you start the server?")
+        init_embedder()
     return _embedder_model
+
 
 
 def embed_text(text: str) -> list:

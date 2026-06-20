@@ -1,0 +1,35 @@
+services:
+  - type: web
+    name: medzee-ai-service
+    runtime: docker
+    plan: free
+    branch: main
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: API_HOST
+        value: 0.0.0.0
+      - key: AI_SERVICE_PORT
+        value: 8000
+      - key: GROQ_API_KEY
+        sync: false  # Will set in Render dashboard
+      - key: GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: EMBEDDING_MODEL
+        value: BAAI/bge-small-en
+      - key: CHROMA_DB_PATH
+        value: /app/chroma_db
+      - key: CHROMA_COLLECTION
+        value: prescriptions
+      - key: WHISPER_MODEL_SIZE
+        value: tiny
+      - key: WHISPER_DEVICE
+        value: cpu
+      - key: TTS_VOICE
+        value: en-US-AriaNeural
+      - key: GOOGLE_APPLICATION_CREDENTIALS
+        value: /app/google-credentials.json
+    disk:
+      name: chroma-data
+      mountPath: /app/chroma_db
+      sizeGB: 1

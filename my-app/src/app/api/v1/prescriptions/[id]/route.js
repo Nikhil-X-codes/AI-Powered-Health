@@ -94,7 +94,11 @@ export async function DELETE(request, { params }) {
       console.warn('Failed to delete prescription embeddings from FastAPI:', fastApiError.message);
     }
 
-    // 3. Delete from DB (foreign keys will cascade and delete associated medicines)
+    // 3. Delete from DB (foreign keys will cascade, but we explicitly delete chat history just in case)
+    await prisma.chat_history.deleteMany({
+      where: { prescription_id: id },
+    });
+    
     await prisma.prescriptions.delete({
       where: { id },
     });

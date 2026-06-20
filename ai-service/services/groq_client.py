@@ -24,7 +24,9 @@ def init_groq_client() -> ChatGroq:
 
 
 def get_groq_client() -> ChatGroq:
-    """Get the existing Groq client."""
+    """Get the existing Groq client, initializing it if necessary."""
+    global _groq_client
     if _groq_client is None:
-        raise RuntimeError("Groq client not initialized. Did you start the server?")
+        init_groq_client()
     return _groq_client
+

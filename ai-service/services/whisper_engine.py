@@ -4,15 +4,15 @@ Loads the faster-whisper model once at startup.
 """
 
 import os
-import faster_whisper
 from config import WHISPER_MODEL, WHISPER_DEVICE, WHISPER_CACHE_DIR
 
-_whisper_model: faster_whisper.WhisperModel = None
+_whisper_model = None
 
 
-def init_whisper() -> faster_whisper.WhisperModel:
+def init_whisper():
     """Initialize and return the Whisper model."""
     global _whisper_model
+    import faster_whisper
     
     if _whisper_model is None:
         model_kwargs = {
@@ -33,11 +33,13 @@ def init_whisper() -> faster_whisper.WhisperModel:
     return _whisper_model
 
 
-def get_whisper_model() -> faster_whisper.WhisperModel:
-    """Get the existing Whisper model."""
+def get_whisper_model():
+    """Get the existing Whisper model, initializing it if necessary."""
+    global _whisper_model
     if _whisper_model is None:
-        raise RuntimeError("Whisper model not initialized. Did you start the server?")
+        init_whisper()
     return _whisper_model
+
 
 
 def transcribe(audio_path: str) -> str:

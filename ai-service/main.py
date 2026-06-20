@@ -1,7 +1,18 @@
+import os
+import time
+
+os.environ.setdefault("HF_HOME", "D:/Projects/Health/ai-service/models_cache/huggingface")
+os.environ.setdefault("TRANSFORMERS_CACHE", "D:/Projects/Health/ai-service/models_cache/huggingface")
+os.environ.setdefault("TORCH_HOME", "D:/Projects/Health/ai-service/models_cache/torch")
+os.environ.setdefault("WHISPER_CACHE_DIR", "D:/Projects/Health/ai-service/models_cache/whisper")
+os.environ.setdefault("XDG_CACHE_HOME", "D:/Projects/Health/ai-service/models_cache")
+
+start_total = time.time()
+
+# Now safe to import ML libraries
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from contextlib import asynccontextmanager
-import os
 import sys
 
 import config
@@ -22,44 +33,13 @@ from routers import ocr, chat, embed, prescription, voice, analyze
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """
-    Manage app lifecycle: startup (load singletons) and shutdown.
-    This ensures heavy models load once when the server starts.
+    Manage app lifecycle: startup and shutdown.
+    Fast startup; heavy ML models will be loaded dynamically on demand.
     """
-    
-    # Load all singletons at startup
-    try:
-        
-        # Initialize each service
-        try:
-            init_groq_client()
-        except Exception as e:
-            pass
-        
-        try:
-            init_embedder()
-        except Exception as e:
-            pass
-        
-        try:
-            init_chroma()
-        except Exception as e:
-            pass
-        
-        try:
-            init_whisper()
-        except Exception as e:
-            pass
-        
-        try:
-            init_ocr()
-        except Exception as e:
-            pass
-        
-    except Exception as e:
-        sys.exit(1)
-    
+    print("[STARTUP] Server lifespan started. Models will be loaded lazily on first request.")
     yield  # Server runs here
     # Add any cleanup code here (close connections, save state, etc.)
+
 
 
 # ============================================================================
@@ -98,10 +78,11 @@ async def health_check():
     Used by load balancers and monitoring to verify service is alive.
     """
     return {
-        "status": "alive",
-        "service": "Health AI Service",
+        "status": "ok",
+        "service": "medzee-ai",
         "version": "1.0.0"
     }
+
 
 
 @app.get("/health/detailed", tags=["Health"])
@@ -216,6 +197,13 @@ async def root():
 # ============================================================================
 # STARTUP MESSAGE
 # ============================================================================
+
+@app.on_event("startup")
+async def startup_event():
+    elapsed = time.time() - start_total
+    print(f"[STARTUP] Total initialization: {elapsed:.1f}s")
+    if elapsed > 30:
+        print("[WARNING] Startup is slow. Check model cache paths.")
 
 if __name__ == "__main__":
     import uvicorn

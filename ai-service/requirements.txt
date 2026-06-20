@@ -11,3 +11,6 @@ sentence-transformers
 chromadb
 faster-whisper
 edge-tts
+groq
+numpy
+httpx
