@@ -2,9 +2,16 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-# System dependencies
+# Set cache paths BEFORE pip install
+ENV HF_HOME=/app/models_cache/huggingface
+ENV TRANSFORMERS_CACHE=/app/models_cache/huggingface
+ENV TORCH_HOME=/app/models_cache/torch
+ENV WHISPER_CACHE_DIR=/app/models_cache/whisper
+ENV XDG_CACHE_HOME=/app/models_cache
+
+# System dependencies (fixed package name)
 RUN apt-get update && apt-get install -y \
-    libgl1-mesa-glx \
+    libgl1 \
     libglib2.0-0 \
     libsm6 \
     libxext6 \
@@ -13,18 +20,11 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Set cache paths BEFORE pip install
-ENV HF_HOME=/app/models_cache/huggingface
-ENV TRANSFORMERS_CACHE=/app/models_cache/huggingface
-ENV TORCH_HOME=/app/models_cache/torch
-ENV WHISPER_CACHE_DIR=/app/models_cache/whisper
-ENV XDG_CACHE_HOME=/app/models_cache
-
 # Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download models during build (baked into image)
+# Pre-download models during build
 RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-en')" && \
     python -c "import whisper; whisper.load_model('tiny', download_root='/app/models_cache/whisper')"
 
