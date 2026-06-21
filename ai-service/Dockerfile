@@ -24,10 +24,6 @@ RUN apt-get update && apt-get install -y \
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Pre-download models during build
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('BAAI/bge-small-en')" && \
-    python -c "import whisper; whisper.load_model('tiny', download_root='/app/models_cache/whisper')"
-
 # Copy application code
 COPY . .
 
