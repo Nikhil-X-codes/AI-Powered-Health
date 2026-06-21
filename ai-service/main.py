@@ -71,6 +71,8 @@ app.add_middleware(
 # HEALTH CHECK ENDPOINT
 # ============================================================================
 
+
+@app.head("/health")
 @app.get("/health", tags=["Health"])
 async def health_check():
     """
