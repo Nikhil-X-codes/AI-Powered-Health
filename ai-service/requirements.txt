@@ -7,9 +7,7 @@ requests
 pillow
 python-dotenv
 langchain-groq
-sentence-transformers
 chromadb
-faster-whisper
 edge-tts
 groq
 numpy

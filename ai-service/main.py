@@ -94,6 +94,7 @@ async def health_check_detailed():
     """
     status = {
         "service": "alive",
+        "environment": os.getenv("ENVIRONMENT", "development"),
         "services": {}
     }
     
@@ -105,12 +106,16 @@ async def health_check_detailed():
     except:
         status["services"]["groq"] = "error"
     
-    try:
-        from services import get_embedder
-        get_embedder()
-        status["services"]["embedder"] = "ok"
-    except:
-        status["services"]["embedder"] = "error"
+    # Embedder: remote in production, local in development
+    if os.getenv("ENVIRONMENT") == "production":
+        status["services"]["embedder"] = "ok (remote - HF Inference API)"
+    else:
+        try:
+            from services import get_embedder
+            get_embedder()
+            status["services"]["embedder"] = "ok (local)"
+        except:
+            status["services"]["embedder"] = "error"
     
     try:
         from services import get_collection
@@ -119,12 +124,16 @@ async def health_check_detailed():
     except:
         status["services"]["chromadb"] = "error"
     
-    try:
-        from services import get_whisper_model
-        get_whisper_model()
-        status["services"]["whisper"] = "ok"
-    except:
-        status["services"]["whisper"] = "error"
+    # Whisper: remote in production, local in development
+    if os.getenv("ENVIRONMENT") == "production":
+        status["services"]["whisper"] = "ok (remote - Groq API)"
+    else:
+        try:
+            from services import get_whisper_model
+            get_whisper_model()
+            status["services"]["whisper"] = "ok (local)"
+        except:
+            status["services"]["whisper"] = "error"
     
     try:
         from services import get_ocr_engine
