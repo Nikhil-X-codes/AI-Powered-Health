@@ -11,6 +11,23 @@ from PIL import Image
 from google.cloud import vision
 
 # Auto-locate google credentials if environment variable is not set or points to a non-existent file
+import json
+
+creds_json = os.environ.get("GOOGLE_CREDENTIALS_JSON") or os.environ.get("GOOGLE_APPLICATION_CREDENTIALS_JSON")
+if creds_json:
+    try:
+        # Validate that it is valid JSON
+        json.loads(creds_json)
+        # Write to a temporary file
+        temp_dir = tempfile.gettempdir()
+        temp_cred_path = os.path.join(temp_dir, "google-credentials.json")
+        with open(temp_cred_path, "w", encoding="utf-8") as f:
+            f.write(creds_json)
+        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = temp_cred_path
+        print(f"[Vision API] Successfully created credentials file from env var at {temp_cred_path}")
+    except Exception as e:
+        print(f"[Vision API] Failed to parse GOOGLE_CREDENTIALS_JSON: {e}")
+
 creds_env = os.environ.get("GOOGLE_APPLICATION_CREDENTIALS")
 if not creds_env or not os.path.exists(creds_env):
     current_dir = os.path.dirname(os.path.abspath(__file__))  # services
