@@ -29,7 +29,7 @@ async def transcribe_audio(file: UploadFile = File(...)):
         }
     """
     # Check file type
-    allowed_types = ["audio/wav", "audio/mpeg", "audio/mp4", "audio/flac", "audio/ogg"]
+    allowed_types = ["audio/wav", "audio/mpeg", "audio/mp4", "audio/flac", "audio/ogg", "audio/webm"]
     if file.content_type not in allowed_types:
         raise HTTPException(
             status_code=400,

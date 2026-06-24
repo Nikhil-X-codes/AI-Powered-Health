@@ -12,3 +12,4 @@ edge-tts
 groq
 numpy
 httpx
+fastembed

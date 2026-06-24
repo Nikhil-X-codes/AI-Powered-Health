@@ -1,11 +1,10 @@
 import os
 import time
 
-os.environ.setdefault("HF_HOME", "D:/Projects/Health/ai-service/models_cache/huggingface")
-os.environ.setdefault("TRANSFORMERS_CACHE", "D:/Projects/Health/ai-service/models_cache/huggingface")
-os.environ.setdefault("TORCH_HOME", "D:/Projects/Health/ai-service/models_cache/torch")
-os.environ.setdefault("WHISPER_CACHE_DIR", "D:/Projects/Health/ai-service/models_cache/whisper")
-os.environ.setdefault("XDG_CACHE_HOME", "D:/Projects/Health/ai-service/models_cache")
+_base = os.path.dirname(os.path.abspath(__file__))
+os.environ.setdefault("HF_HOME", os.path.join(_base, "models_cache", "huggingface"))
+os.environ.setdefault("FASTEMBED_CACHE_PATH", os.path.join(_base, "models_cache", "fastembed"))
+os.environ.setdefault("XDG_CACHE_HOME", os.path.join(_base, "models_cache"))
 
 start_total = time.time()
 
@@ -106,16 +105,13 @@ async def health_check_detailed():
     except:
         status["services"]["groq"] = "error"
     
-    # Embedder: remote in production, local in development
-    if os.getenv("ENVIRONMENT") == "production":
-        status["services"]["embedder"] = "ok (remote - HF Inference API)"
-    else:
-        try:
-            from services import get_embedder
-            get_embedder()
-            status["services"]["embedder"] = "ok (local)"
-        except:
-            status["services"]["embedder"] = "error"
+    # Embedder (fastembed - lightweight ONNX)
+    try:
+        from services import get_embedder
+        get_embedder()
+        status["services"]["embedder"] = "ok"
+    except:
+        status["services"]["embedder"] = "error"
     
     try:
         from services import get_collection

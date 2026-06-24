@@ -11,8 +11,7 @@ if ENVIRONMENT == "development":
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 os.environ.setdefault("HF_HOME", os.path.join(_BASE_DIR, "models_cache", "huggingface"))
-os.environ.setdefault("TRANSFORMERS_CACHE", os.path.join(_BASE_DIR, "models_cache", "huggingface"))
-os.environ.setdefault("TORCH_HOME", os.path.join(_BASE_DIR, "models_cache", "torch"))
+os.environ.setdefault("FASTEMBED_CACHE_PATH", os.path.join(_BASE_DIR, "models_cache", "fastembed"))
 os.environ.setdefault("WHISPER_CACHE_DIR", os.path.join(_BASE_DIR, "models_cache", "whisper"))
 os.environ.setdefault("XDG_CACHE_HOME", os.path.join(_BASE_DIR, "models_cache"))
 
