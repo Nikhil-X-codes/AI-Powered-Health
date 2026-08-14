@@ -145,7 +145,7 @@ async def chat_completion(request: ChatRequest):
         }
     
     Returns:
-        {"response": "...", "model": "mixtral-8x7b-32768"}
+        {"response": "...", "model": "openai/gpt-oss-20b"}
     """
     try:
         client = get_groq_client()

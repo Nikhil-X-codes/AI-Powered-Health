@@ -61,10 +61,10 @@ Medzee.ai helps patients, elderly users, and non-medical individuals understand 
 | **FastAPI** | High-performance Python API for AI workloads |
 | **LangChain** | LLM orchestration & prompt management |
 | **Google Cloud Vision API** | High-accuracy text extraction from PDFs and images |
-| **Groq API** | LLM inference (model: `llama-3.1-8b-instant`) |
-| **Sentence Transformers** | Embedding generation (`BAAI/bge-small-en`, `all-MiniLM-L6-v2`) |
+| **Groq API** | LLM inference (model: `openai/gpt-oss-20b`) |
+| **Fastembed** | Local embedding generation (`BAAI/bge-small-en-v1.5` via ONNX Runtime) |
 | **ChromaDB** | Vector database for RAG retrieval |
-| **Faster Whisper** | Speech-to-text transcription |
+| **Groq Whisper API** | Cloud-based speech-to-text transcription |
 | **Edge TTS** | Text-to-speech audio generation |
 
 **Deployment:** Render / RunPod
@@ -104,14 +104,14 @@ Medzee.ai helps patients, elderly users, and non-medical individuals understand 
 │  │  FastAPI (AI Microservice)                                  │   │
 │  │                                                             │   │
 │  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │   │
-│  │  │Google Vision│  │  Groq API   │  │  SentenceTransformers│  │   │
-│  │  │ (Vision API)│  │  (LLM)      │  │  (Embeddings)        │  │   │
+│  │  │Google Vision│  │  Groq API   │  │      Fastembed      │  │   │
+│  │  │ (Vision API)│  │ (LLM & STT) │  │  (Local Embeddings) │  │   │
 │  │  └─────────────┘  └─────────────┘  └─────────────────────┘  │   │
 │  │                                                             │   │
-│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────────────┐  │   │
-│  │  │FasterWhisper│  │   Edge TTS  │  │     ChromaDB        │  │   │
-│  │  │  (STT)      │  │  (TTS)      │  │  (Vector Store)     │  │   │
-│  │  └─────────────┘  └─────────────┘  └─────────────────────┘  │   │
+│  │                   ┌─────────────┐  ┌─────────────────────┐  │   │
+│  │                   │  Edge TTS   │  │      ChromaDB       │  │   │
+│  │                   │    (TTS)    │  │   (Vector Store)    │  │   │
+│  │                   └─────────────┘  └─────────────────────┘  │   │
 │  └─────────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────────┘
                             │
@@ -157,7 +157,7 @@ Google Cloud Vision API text extraction & confidence evaluation
     ↓
 Confidence rating check (flagged if below 70% threshold)
     ↓
-Prompt Template + extracted text → Groq Llama3
+Prompt Template + extracted text → Groq (openai/gpt-oss-20b)
     ↓
 Structured JSON (hemoglobin, glucose, etc.)
     ↓
@@ -195,7 +195,7 @@ Search ChromaDB for relevant context
     ↓
 Inject context + query into prompt
     ↓
-Groq Llama3 generates grounded response
+Groq (openai/gpt-oss-20b) generates grounded response
     ↓
 Next.js API route saves exchange to `chat_history`
     ↓
@@ -204,9 +204,9 @@ Frontend displays AI response
 
 ### 4. Voice Assistant Pipeline
 ```
-Microphone captures audio
+User microphone captures audio
     ↓
-Faster Whisper (Speech-to-Text)
+Groq Whisper API (Speech-to-Text)
     ↓
 Text processed through RAG Chat Pipeline
     ↓
@@ -254,11 +254,11 @@ Frontend: Refreshes overview list and routes back to overview page
 | Component | Tool / Model |
 |-----------|--------------|
 | LLM Provider | Groq API |
-| Recommended Model | `llama-3.1-8b-instant` |
+| Recommended Model | `openai/gpt-oss-20b` |
 | Vision API | Google Cloud Vision API |
-| Embeddings | `BAAI/bge-small-en` |
+| Embeddings | Fastembed (`BAAI/bge-small-en-v1.5` loaded locally) |
 | Vector Database | ChromaDB |
-| Speech-to-Text | `faster-whisper` |
+| Speech-to-Text | Groq Whisper API |
 | Text-to-Speech | Edge TTS |
 
 ---
